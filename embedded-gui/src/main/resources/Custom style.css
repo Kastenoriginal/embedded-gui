@@ -1,0 +1,28 @@
+.root {
+    -fx-background-color: white;
+    -fx-font-size: 12pt;
+}
+
+.button {
+    -fx-background-color: white;
+    -fx-background-radius: 0;
+    -fx-text-fill: #03A9F4;
+}
+
+.button:pressed {
+    -fx-background-color: #03A9F4;
+    -fx-background-radius: 0;
+    -fx-text-fill: white;
+}
+
+.button:focused {
+	-fx-background-color: white;
+    -fx-background-radius: 0;
+    -fx-text-fill: #03A9F4;
+}
+
+.button:hover {
+	-fx-background-color: #03A9F4;
+    -fx-background-radius: 0;
+    -fx-text-fill: white;
+}

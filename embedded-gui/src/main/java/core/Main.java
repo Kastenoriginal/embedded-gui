@@ -1,0 +1,189 @@
+package core;
+
+import java.net.URL;
+import java.util.ResourceBundle;
+
+import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import sun.net.util.IPAddressUtil;
+
+@SuppressWarnings("restriction")
+public class Main extends Application implements EventHandler<ActionEvent>, Initializable {
+
+	private Button echoButton, testButton;
+	private GridPane gridPane;
+	private BorderPane borderPane;
+	private String ip = "192.168.100.2";
+	private static final int PORT = 18924;
+	private TextField textField;
+	Networking networking = new Networking();
+
+	public static void main(String[] args) {
+		launch(args);
+	}
+
+	public void start(Stage primaryStage) throws Exception {
+		borderPane = new BorderPane();
+
+		textField = new TextField();
+		textField.setPromptText("Default IP address");
+		setValidationBorder(getIp(), textField);
+		textField.textProperty().addListener(new ChangeListener<String>() {
+			public void changed(ObservableValue<? extends String> observableValue, String oldValue, String newValue) {
+				if (textField.getPromptText().startsWith("D")) {
+					textField.setPromptText("Enter IP address");
+				}
+				setIp(newValue);
+				setValidationBorder(getIp(), textField);
+			}
+		});
+
+		setButtons();
+		setLayout();
+
+		Scene scene = new Scene(borderPane, 600, 800);
+		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
+		borderPane.requestFocus();
+		primaryStage.setTitle("RPI GUI");
+		primaryStage.setScene(scene);
+		primaryStage.setResizable(false);
+		primaryStage.show();
+	}
+
+	public void handle(ActionEvent event) {
+		Networking networking = new Networking();
+		if (event.getSource() == echoButton && isIpAddress(getIp())) {
+			networking.sendEcho(getIp(), PORT);
+		} else if (event.getSource() == testButton && isIpAddress(getIp())) {
+			networking.testGpio11(getIp(), PORT);
+		}
+	}
+
+	private void setLayout() {
+		HBox topBox = new HBox();
+		topBox.setAlignment(Pos.CENTER);
+		topBox.getChildren().add(textField);
+//		topBox.setStyle("-fx-background-color: blue;");
+		borderPane.setTop(topBox);
+
+		VBox leftBox = new VBox();
+		leftBox.setAlignment(Pos.TOP_CENTER);
+		leftBox.getChildren().add(echoButton);
+		leftBox.getChildren().add(testButton);
+//		leftBox.setStyle("-fx-background-color: red;");
+		borderPane.setLeft(leftBox);
+
+		gridPane = new GridPane();
+		gridPane.setPadding(new Insets(0, 0, 0, 0));
+		gridPane.setAlignment(Pos.CENTER);
+
+		setGridButtons();
+
+		VBox centerBox = new VBox();
+		centerBox.setAlignment(Pos.CENTER_LEFT);
+		centerBox.getChildren().add(gridPane);
+//		centerBox.setStyle("-fx-background-color: green;");
+		borderPane.setCenter(centerBox);
+	}
+
+	private void setGridButtons() {
+		int row = 1;
+		int col = 1;
+
+		
+		for (int i = 1; i <= 40; i++) {
+			if (col == 3) {
+				col = 1;
+				row++;
+			}
+			final Button button = new Button();
+//			button.setId(String.valueOf(i));
+			button.setStyle("-fx-font-size: 12");
+			button.setMinSize(35, 35);
+			if (i < 10) {
+				button.setText(" " + String.valueOf(i) + " ");
+			} else {
+				button.setText(String.valueOf(i));
+			}
+//			System.out.println(Integer.valueOf(button.getText().trim()));
+			final PinType type = new PinType();
+			System.out.println(type.getPinType(button));
+			button.setOnAction(new EventHandler<ActionEvent>() {
+				public void handle(ActionEvent arg0) {
+					//TODO test
+//					networking.toggleOnOff(button, getIp(), PORT);
+//					System.out.println("button ID: " + type.getPinType(button));
+				}
+			});
+			gridPane.add(button, col, row);
+			col++;
+		}
+	}
+
+	private void setButtons() {
+		echoButton = new Button("Send echo");
+		echoButton.setOnAction(this);
+		testButton = new Button("Toggle LED");
+		testButton.setOnAction(this);
+	}
+
+	private void setValidationBorder(String IpAddress, TextField textField) {
+		if (!isIpAddress(IpAddress)) {
+			textField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+		} else {
+			textField.setStyle("-fx-border-color: green; -fx-border-width: 2px;");
+		}
+
+	}
+
+	private boolean isIpAddress(String ip) {
+		try {
+			if (ip == null || ip.isEmpty() || !IPAddressUtil.isIPv4LiteralAddress(ip) || ip.endsWith(".")) {
+				return false;
+			}
+
+			String[] parts = ip.split("\\.");
+
+			if (parts.length != 4) {
+				return false;
+			}
+
+			for (String s : parts) {
+				int i = Integer.parseInt(s);
+				if ((i < 0) || (i > 255)) {
+					return false;
+				}
+			}
+
+			return true;
+		} catch (NumberFormatException e) {
+			System.out.println(e);
+			return false;
+		}
+	}
+
+	public String getIp() {
+		return ip;
+	}
+
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+
+	public void initialize(URL arg0, ResourceBundle arg1) {
+	}
+}
