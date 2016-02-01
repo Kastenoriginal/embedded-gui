@@ -23,6 +23,50 @@
 
 .button:hover {
 	-fx-background-color: #03A9F4;
-    -fx-background-radius: 0;
-    -fx-text-fill: white;
+	-fx-background-radius: 0;
+	-fx-text-fill: white;
+}
+
+.button:disabled {
+	-fx-text-fill: grey;
+	-fx-opacity: 0.6;
+}
+
+.combo-box-base {
+	-fx-background-color: white, white;
+	-fx-border-color: #03A9F4;
+	-fx-font-size: 10pt;
+}
+
+.combo-box .list-cell {
+	-fx-text-fill: #03A9F4;
+}
+
+.combo-box .list-cell:hover {
+	-fx-background-color: #03A9F4;
+	-fx-text-fill: white;
+}
+
+.combo-box .list-cell:selected {
+	-fx-background-color: white;
+	-fx-text-fill: #03A9F4;
+}
+
+.combo-box .list-cell:selected:hover {
+	-fx-background-color: #03A9F4;
+	-fx-text-fill: white;
+}
+
+.combo-box-base:showing {
+    -fx-color: #03A9F4;
+}
+
+.combo-box-base:disabled {
+	-fx-border-color: #9E9E9E;
+	-fx-text-fill: black;
+}
+
+.combo-box .list-cell:selected:disabled {
+	-fx-background-color: white;
+	-fx-text-fill: black;
 }

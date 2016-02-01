@@ -1,18 +1,16 @@
 package core;
 
-import java.net.URL;
-import java.util.ResourceBundle;
-
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -22,7 +20,7 @@ import javafx.stage.Stage;
 import sun.net.util.IPAddressUtil;
 
 @SuppressWarnings("restriction")
-public class Main extends Application implements EventHandler<ActionEvent>, Initializable {
+public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private Button echoButton, testButton;
 	private GridPane gridPane;
@@ -58,7 +56,7 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 		Scene scene = new Scene(borderPane, 600, 800);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
 		borderPane.requestFocus();
-		primaryStage.setTitle("RPI GUI");
+		primaryStage.setTitle("Embedded systems control");
 		primaryStage.setScene(scene);
 		primaryStage.setResizable(false);
 		primaryStage.show();
@@ -81,20 +79,20 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 		borderPane.setTop(topBox);
 
 		VBox leftBox = new VBox();
-		leftBox.setAlignment(Pos.TOP_CENTER);
+		leftBox.setAlignment(Pos.TOP_LEFT);
 		leftBox.getChildren().add(echoButton);
 		leftBox.getChildren().add(testButton);
 //		leftBox.setStyle("-fx-background-color: red;");
 		borderPane.setLeft(leftBox);
 
 		gridPane = new GridPane();
-		gridPane.setPadding(new Insets(0, 0, 0, 0));
+//		gridPane.setPadding(new Insets(0, 0, 0, 0));
 		gridPane.setAlignment(Pos.CENTER);
 
 		setGridButtons();
 
 		VBox centerBox = new VBox();
-		centerBox.setAlignment(Pos.CENTER_LEFT);
+		centerBox.setAlignment(Pos.TOP_CENTER);
 		centerBox.getChildren().add(gridPane);
 //		centerBox.setStyle("-fx-background-color: green;");
 		borderPane.setCenter(centerBox);
@@ -104,6 +102,11 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 		int row = 1;
 		int col = 1;
 
+		ObservableList<String> options = FXCollections.observableArrayList("Option 1", "Option 2");
+		ComboBox<String> comboBox = new ComboBox<String>(options);
+		comboBox.getSelectionModel().selectFirst();
+		//TODO add combobox near buttons
+		gridPane.add(comboBox, 1, 0);
 		
 		for (int i = 1; i <= 40; i++) {
 			if (col == 3) {
@@ -111,7 +114,7 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 				row++;
 			}
 			final Button button = new Button();
-//			button.setId(String.valueOf(i));
+			button.setUserData("0");
 			button.setStyle("-fx-font-size: 12");
 			button.setMinSize(35, 35);
 			if (i < 10) {
@@ -119,14 +122,17 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 			} else {
 				button.setText(String.valueOf(i));
 			}
-//			System.out.println(Integer.valueOf(button.getText().trim()));
-			final PinType type = new PinType();
-			System.out.println(type.getPinType(button));
 			button.setOnAction(new EventHandler<ActionEvent>() {
 				public void handle(ActionEvent arg0) {
-					//TODO test
-//					networking.toggleOnOff(button, getIp(), PORT);
-//					System.out.println("button ID: " + type.getPinType(button));
+					String valueToSend;
+					if (!isPressed(button)){
+						valueToSend = "1";
+						setPressed(button, "1");
+					} else {
+						valueToSend = "0";
+						setPressed(button, "0");
+					}
+					networking.toggleLed(button, valueToSend, getIp(), PORT);
 				}
 			});
 			gridPane.add(button, col, row);
@@ -139,6 +145,7 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 		echoButton.setOnAction(this);
 		testButton = new Button("Toggle LED");
 		testButton.setOnAction(this);
+		//TODO send request to get all values of all buttons
 	}
 
 	private void setValidationBorder(String IpAddress, TextField textField) {
@@ -183,7 +190,16 @@ public class Main extends Application implements EventHandler<ActionEvent>, Init
 	public void setIp(String ip) {
 		this.ip = ip;
 	}
-
-	public void initialize(URL arg0, ResourceBundle arg1) {
+	
+	public boolean isPressed(Button button){
+		if(button.getUserData() == "0"){
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	public void setPressed(Button button, String value){
+		button.setUserData(value);
 	}
 }

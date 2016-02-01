@@ -35,7 +35,7 @@ public class Networking {
 		}).start();
 	}
 
-	public void toggleLed(final Button button, final String serverIP, final int serverPort) {
+	public void toggleLed(final Button button, final String valueToSend, final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
 				Socket socket;
@@ -43,8 +43,10 @@ public class Networking {
 					socket = new Socket(serverIP, serverPort);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					//TODO co sa posle + test
-//					out.println(getDateAndTime() + "GPIO" + button.getText() + "TRUE/HIGH");
+					//TODO nastavit typ pinu
+					out.println(getDateAndTime() + "GPIO" + button.getText().trim() + valueToSend);
+					//TODO ohandlovat parsnuty string
+					String response = in.readLine();
 					socket.close();
 				} catch (UnknownHostException e) {
 					System.out.println(e);
@@ -55,7 +57,7 @@ public class Networking {
 		}).start();
 	}
 
-	//TODO remove
+	//TODO remove after test
 	public void testGpio11(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
