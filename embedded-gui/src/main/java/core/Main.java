@@ -102,40 +102,59 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		int row = 1;
 		int col = 1;
 
-		ObservableList<String> options = FXCollections.observableArrayList("Option 1", "Option 2");
-		ComboBox<String> comboBox = new ComboBox<String>(options);
-		comboBox.getSelectionModel().selectFirst();
+//		ObservableList<String> options = FXCollections.observableArrayList("Option 1", "Option 2");
+//		ComboBox<String> comboBox = new ComboBox<String>(options);
+//		comboBox.getSelectionModel().selectFirst();
 		//TODO add combobox near buttons
-		gridPane.add(comboBox, 1, 0);
+//		gridPane.add(comboBox, 1, 0);
 		
-		for (int i = 1; i <= 40; i++) {
-			if (col == 3) {
+		int buttonId = 1;
+		int comboBoxId = 1;
+		
+		for (int i = 1; i <= 80; i++) {
+			if (col == 5) {
 				col = 1;
 				row++;
 			}
+			
 			final Button button = new Button();
 			button.setUserData("0");
 			button.setStyle("-fx-font-size: 12");
 			button.setMinSize(35, 35);
-			if (i < 10) {
-				button.setText(" " + String.valueOf(i) + " ");
+			
+			if (col == 1 || col == 4) {
+				ObservableList<String> options = FXCollections.observableArrayList(String.valueOf(comboBoxId));
+				final ComboBox<String> comboBox = new ComboBox<String>(options);
+				comboBox.setPrefWidth(100);
+				comboBox.setId(String.valueOf(comboBoxId));
+				comboBox.getSelectionModel().selectFirst();
+				System.out.println("combo box ID: " + comboBoxId);
+				comboBoxId++;
+				gridPane.add(comboBox, col, row);
 			} else {
-				button.setText(String.valueOf(i));
-			}
-			button.setOnAction(new EventHandler<ActionEvent>() {
-				public void handle(ActionEvent arg0) {
-					String valueToSend;
-					if (!isPressed(button)){
-						valueToSend = "1";
-						setPressed(button, "1");
-					} else {
-						valueToSend = "0";
-						setPressed(button, "0");
-					}
-					networking.toggleLed(button, valueToSend, getIp(), PORT);
+				button.setId(String.valueOf(buttonId));
+				System.out.println("button ID: " + buttonId);
+				buttonId++;
+				if (i<10) {
+					button.setText(" " + String.valueOf(buttonId-1) + " ");
+				} else {
+					button.setText(String.valueOf(buttonId-1));
 				}
-			});
-			gridPane.add(button, col, row);
+				button.setOnAction(new EventHandler<ActionEvent>() {
+					public void handle(ActionEvent arg0) {
+						String valueToSend;
+						if (!isPressed(button)){
+							valueToSend = "1";
+							setPressed(button, "1");
+						} else {
+							valueToSend = "0";
+							setPressed(button, "0");
+						}
+						networking.toggleLed(button, valueToSend, getIp(), PORT);
+					}
+				});
+				gridPane.add(button, col, row);
+			}
 			col++;
 		}
 	}
