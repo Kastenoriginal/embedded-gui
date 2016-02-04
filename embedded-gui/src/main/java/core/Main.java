@@ -1,5 +1,6 @@
 package core;
 
+import hashmaps.RaspberryHashMap;
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -102,48 +103,50 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		int row = 1;
 		int col = 1;
 
-//		ObservableList<String> options = FXCollections.observableArrayList("Option 1", "Option 2");
-//		ComboBox<String> comboBox = new ComboBox<String>(options);
-//		comboBox.getSelectionModel().selectFirst();
-		//TODO add combobox near buttons
-//		gridPane.add(comboBox, 1, 0);
-		
 		int buttonId = 1;
 		int comboBoxId = 1;
+		
+		RaspberryHashMap piMap = new RaspberryHashMap();
+		piMap.createHashMap();
 		
 		for (int i = 1; i <= 80; i++) {
 			if (col == 5) {
 				col = 1;
 				row++;
 			}
-			
+
 			final Button button = new Button();
 			button.setUserData("0");
 			button.setStyle("-fx-font-size: 12");
 			button.setMinSize(35, 35);
-			
+
 			if (col == 1 || col == 4) {
-				ObservableList<String> options = FXCollections.observableArrayList(String.valueOf(comboBoxId));
+				String[] pinTypes = piMap.getValueByKey(comboBoxId);
+				ObservableList<String> options;
+				if (pinTypes.length > 1) {
+					options = FXCollections.observableArrayList(pinTypes[0], pinTypes[1]);
+				} else {
+					options = FXCollections.observableArrayList(pinTypes[0]);
+				}
+				
 				final ComboBox<String> comboBox = new ComboBox<String>(options);
 				comboBox.setPrefWidth(100);
 				comboBox.setId(String.valueOf(comboBoxId));
 				comboBox.getSelectionModel().selectFirst();
-				System.out.println("combo box ID: " + comboBoxId);
 				comboBoxId++;
 				gridPane.add(comboBox, col, row);
 			} else {
 				button.setId(String.valueOf(buttonId));
-				System.out.println("button ID: " + buttonId);
 				buttonId++;
-				if (i<10) {
-					button.setText(" " + String.valueOf(buttonId-1) + " ");
+				if (buttonId < 10) {
+					button.setText(" " + String.valueOf(buttonId - 1) + " ");
 				} else {
-					button.setText(String.valueOf(buttonId-1));
+					button.setText(String.valueOf(buttonId - 1));
 				}
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
 						String valueToSend;
-						if (!isPressed(button)){
+						if (!isPressed(button)) {
 							valueToSend = "1";
 							setPressed(button, "1");
 						} else {
@@ -209,16 +212,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void setIp(String ip) {
 		this.ip = ip;
 	}
-	
-	public boolean isPressed(Button button){
-		if(button.getUserData() == "0"){
+
+	public boolean isPressed(Button button) {
+		if (button.getUserData() == "0") {
 			return false;
 		} else {
 			return true;
 		}
 	}
-	
-	public void setPressed(Button button, String value){
+
+	public void setPressed(Button button, String value) {
 		button.setUserData(value);
 	}
 }
