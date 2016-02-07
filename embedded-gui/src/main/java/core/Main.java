@@ -1,6 +1,9 @@
 package core;
 
 import hashmaps.RaspberryHashMap;
+
+import java.util.ArrayList;
+
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -29,7 +32,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	private String ip = "192.168.100.2";
 	private static final int PORT = 18924;
 	private TextField textField;
-	Networking networking = new Networking();
+	private Networking networking = new Networking();
+	private ArrayList<String> buttonsToDisable = new ArrayList<String>();
 
 	public static void main(String[] args) {
 		launch(args);
@@ -105,37 +109,43 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 		int buttonId = 1;
 		int comboBoxId = 1;
-		
+
 		RaspberryHashMap piMap = new RaspberryHashMap();
 		piMap.createHashMap();
-		
+
+		ArrayList<Button> buttons = new ArrayList<Button>();
+		ArrayList<ComboBox> comboBoxes = new ArrayList<ComboBox>();
+
 		for (int i = 1; i <= 80; i++) {
 			if (col == 5) {
 				col = 1;
 				row++;
 			}
 
-			final Button button = new Button();
-			button.setUserData("0");
-			button.setStyle("-fx-font-size: 12");
-			button.setMinSize(35, 35);
+			String[] pinTypes = piMap.getValueByKey(comboBoxId);
+			ObservableList<String> options;
+			if (pinTypes.length > 1) {
+				options = FXCollections.observableArrayList(pinTypes[0], pinTypes[1]);
+			} else {
+				options = FXCollections.observableArrayList(pinTypes[0]);
+			}
+
+			final ComboBox<String> comboBox;
+			final Button button;
 
 			if (col == 1 || col == 4) {
-				String[] pinTypes = piMap.getValueByKey(comboBoxId);
-				ObservableList<String> options;
-				if (pinTypes.length > 1) {
-					options = FXCollections.observableArrayList(pinTypes[0], pinTypes[1]);
-				} else {
-					options = FXCollections.observableArrayList(pinTypes[0]);
-				}
-				
-				final ComboBox<String> comboBox = new ComboBox<String>(options);
-				comboBox.setPrefWidth(100);
+				comboBox = new ComboBox<String>(options);
+				comboBoxes.add(comboBox);
+				comboBox.setPrefWidth(110);
 				comboBox.setId(String.valueOf(comboBoxId));
 				comboBox.getSelectionModel().selectFirst();
 				comboBoxId++;
 				gridPane.add(comboBox, col, row);
 			} else {
+				button = new Button();
+				buttons.add(button);
+				button.setStyle("-fx-font-size: 12");
+				button.setMinSize(35, 35);
 				button.setId(String.valueOf(buttonId));
 				buttonId++;
 				if (buttonId < 10) {
@@ -159,6 +169,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				gridPane.add(button, col, row);
 			}
 			col++;
+		}
+		ComboBox tempBox;
+		Button tempButton;
+		
+		for (int i = 0; i < 40; i++) {
+			tempBox = comboBoxes.get(i);
+			tempButton = buttons.get(i);
+			if (tempBox.getSelectionModel().getSelectedItem().equals("PWR5")
+					|| tempBox.getSelectionModel().getSelectedItem().equals("PWR3")
+					|| tempBox.getSelectionModel().getSelectedItem().equals("GND")) {
+				tempBox.setDisable(true);
+				tempButton.setDisable(true);
+			}
 		}
 	}
 

@@ -41,6 +41,7 @@ public class Networking {
 				Socket socket;
 				try {
 					socket = new Socket(serverIP, serverPort);
+					socket.setSoTimeout(5000);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 					//TODO nastavit typ pinu

@@ -2,15 +2,11 @@ package hashmaps;
 
 import java.util.HashMap;
 
-public class RaspberryHashMap{
-	
+public class RaspberryHashMap {
+
 	HashMap<Integer, String[]> hashMap = new HashMap<Integer, String[]>();
-	
-	public enum Type {
-		PWR5, PWR3, GND, GPIO, I2C, SPI, UART, EEPROM;
-	}
-	
-	public void createHashMap(){
+
+	public void createHashMap() {
 		String[] pin1 = { "PWR3" };
 		String[] pin2 = { "PWR5" };
 		String[] pin3 = { "GPIO", "I2C" };
@@ -51,7 +47,7 @@ public class RaspberryHashMap{
 		String[] pin38 = { "GPIO" };
 		String[] pin39 = { "GND" };
 		String[] pin40 = { "GPIO" };
-		
+
 		hashMap.put(1, pin1);
 		hashMap.put(2, pin2);
 		hashMap.put(3, pin3);
@@ -93,9 +89,8 @@ public class RaspberryHashMap{
 		hashMap.put(39, pin39);
 		hashMap.put(40, pin40);
 	}
-	
-	public String[] getValueByKey(int key){
+
+	public String[] getValueByKey(int key) {
 		return (String[]) hashMap.get(key);
 	}
 }
-
