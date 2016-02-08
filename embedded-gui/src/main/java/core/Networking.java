@@ -45,7 +45,13 @@ public class Networking {
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 					//TODO nastavit typ pinu
-					out.println(getDateAndTime() + "GPIO" + button.getText().trim() + valueToSend);
+					if (Integer.valueOf(button.getText().trim()) < 10) {
+						System.out.println("Sending: " + getDateAndTime() + "GPIO:" + "0" + button.getText().trim() + valueToSend);
+						out.println(getDateAndTime() + "GPIO:" + "0" + button.getText().trim() + valueToSend);
+					} else {
+						System.out.println("Sending: " + getDateAndTime() + "GPIO:" + button.getText().trim() + valueToSend);
+						out.println(getDateAndTime() + "GPIO:" + button.getText().trim() + valueToSend);
+					}
 					//TODO ohandlovat parsnuty string
 					String response = in.readLine();
 					socket.close();
@@ -80,7 +86,7 @@ public class Networking {
 	}
 
 	private String getDateAndTime() {
-		DateFormat dateFormat = new SimpleDateFormat("dMMyyyyHHmmss");
+		DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 		Calendar calendar = Calendar.getInstance();
 		return dateFormat.format(calendar.getTime());
 	}

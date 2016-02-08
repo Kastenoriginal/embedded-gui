@@ -29,11 +29,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	private Button echoButton, testButton;
 	private GridPane gridPane;
 	private BorderPane borderPane;
-	private String ip = "192.168.100.2";
+	private String ip = "192.168.168.2";
 	private static final int PORT = 18924;
 	private TextField textField;
 	private Networking networking = new Networking();
-	private ArrayList<String> buttonsToDisable = new ArrayList<String>();
 
 	public static void main(String[] args) {
 		launch(args);
@@ -94,7 +93,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 //		gridPane.setPadding(new Insets(0, 0, 0, 0));
 		gridPane.setAlignment(Pos.CENTER);
 
-		setGridButtons();
+		setGridElements();
 
 		VBox centerBox = new VBox();
 		centerBox.setAlignment(Pos.TOP_CENTER);
@@ -103,18 +102,34 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		borderPane.setCenter(centerBox);
 	}
 
-	private void setGridButtons() {
+	private void setGridElements() {
+		ArrayList<Button> buttons = new ArrayList<Button>();
+		ArrayList<ComboBox> comboBoxes = new ArrayList<ComboBox>();
+
+		createButtonsAndComboBoxes(buttons, comboBoxes);
+		disableButtonsAndComboBoxes(buttons, comboBoxes);
+	}
+
+	private void createButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox> comboBoxes) {
 		int row = 1;
 		int col = 1;
-
 		int buttonId = 1;
 		int comboBoxId = 1;
 
 		RaspberryHashMap piMap = new RaspberryHashMap();
 		piMap.createHashMap();
 
-		ArrayList<Button> buttons = new ArrayList<Button>();
-		ArrayList<ComboBox> comboBoxes = new ArrayList<ComboBox>();
+		//TODO spravit na 40 iteracii a optimalizovat
+//		for (int i = 0; i < 40; i++) {
+//			if (col == 5) {
+//				col = 1;
+//				row++;
+//			}
+//			
+//			
+//			
+//			col++;
+//		}
 
 		for (int i = 1; i <= 80; i++) {
 			if (col == 5) {
@@ -144,15 +159,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			} else {
 				button = new Button();
 				buttons.add(button);
+				button.setUserData("0");
 				button.setStyle("-fx-font-size: 12");
 				button.setMinSize(35, 35);
 				button.setId(String.valueOf(buttonId));
 				buttonId++;
-				if (buttonId < 10) {
-					button.setText(" " + String.valueOf(buttonId - 1) + " ");
-				} else {
-					button.setText(String.valueOf(buttonId - 1));
-				}
+				button.setText(String.valueOf(buttonId - 1));
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
 						String valueToSend;
@@ -163,6 +175,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 							valueToSend = "0";
 							setPressed(button, "0");
 						}
+						//TODO if Integer value of button get text < 10 then "0" + button get text
 						networking.toggleLed(button, valueToSend, getIp(), PORT);
 					}
 				});
@@ -170,17 +183,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			}
 			col++;
 		}
-		ComboBox tempBox;
-		Button tempButton;
-		
+	}
+
+	private void disableButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox> comboBoxes) {
 		for (int i = 0; i < 40; i++) {
-			tempBox = comboBoxes.get(i);
-			tempButton = buttons.get(i);
-			if (tempBox.getSelectionModel().getSelectedItem().equals("PWR5")
-					|| tempBox.getSelectionModel().getSelectedItem().equals("PWR3")
-					|| tempBox.getSelectionModel().getSelectedItem().equals("GND")) {
-				tempBox.setDisable(true);
-				tempButton.setDisable(true);
+			if (comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR5")
+					|| comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR3")
+					|| comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("GND")) {
+				comboBoxes.get(i).setDisable(true);
+				buttons.get(i).setDisable(true);
 			}
 		}
 	}
