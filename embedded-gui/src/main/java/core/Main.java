@@ -26,12 +26,11 @@ import sun.net.util.IPAddressUtil;
 @SuppressWarnings("restriction")
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-	private Button echoButton, testButton;
+	private Button echoButton, requestButton;
 	private GridPane gridPane;
-	private BorderPane borderPane;
-	private String ip = "192.168.168.2";
+	
 	private static final int PORT = 18924;
-	private TextField textField;
+	private String ip = "192.168.168.2";
 	private Networking networking = new Networking();
 
 	public static void main(String[] args) {
@@ -39,9 +38,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	public void start(Stage primaryStage) throws Exception {
-		borderPane = new BorderPane();
+		BorderPane borderPane = new BorderPane();
+		TextField textField = new TextField();;
 
-		textField = new TextField();
+		setIpAddressTextField(textField);
+		setButtons();
+		setLayout(borderPane, textField);
+		
+		
+		Scene scene = new Scene(borderPane, 600, 800);
+		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
+		borderPane.requestFocus();
+		primaryStage.setTitle("Embedded systems control");
+		primaryStage.setScene(scene);
+		primaryStage.setResizable(false);
+		primaryStage.show();
+	}
+	
+	private void setIpAddressTextField(final TextField textField) {
 		textField.setPromptText("Default IP address");
 		setValidationBorder(getIp(), textField);
 		textField.textProperty().addListener(new ChangeListener<String>() {
@@ -53,29 +67,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				setValidationBorder(getIp(), textField);
 			}
 		});
-
-		setButtons();
-		setLayout();
-
-		Scene scene = new Scene(borderPane, 600, 800);
-		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
-		borderPane.requestFocus();
-		primaryStage.setTitle("Embedded systems control");
-		primaryStage.setScene(scene);
-		primaryStage.setResizable(false);
-		primaryStage.show();
 	}
 
 	public void handle(ActionEvent event) {
 		Networking networking = new Networking();
 		if (event.getSource() == echoButton && isIpAddress(getIp())) {
 			networking.sendEcho(getIp(), PORT);
-		} else if (event.getSource() == testButton && isIpAddress(getIp())) {
-			networking.testGpio11(getIp(), PORT);
+		} else if (event.getSource() == requestButton && isIpAddress(getIp())) {
+			//TODO ked vrati vsetky hodnoty zo servera tak ohandlovat GUI
+			System.out.println(networking.sendStatusRequest(getIp(), PORT));
 		}
 	}
 
-	private void setLayout() {
+	private void setLayout(BorderPane borderPane, TextField textField) {
 		HBox topBox = new HBox();
 		topBox.setAlignment(Pos.CENTER);
 		topBox.getChildren().add(textField);
@@ -85,12 +89,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		VBox leftBox = new VBox();
 		leftBox.setAlignment(Pos.TOP_LEFT);
 		leftBox.getChildren().add(echoButton);
-		leftBox.getChildren().add(testButton);
+		leftBox.getChildren().add(requestButton);
 //		leftBox.setStyle("-fx-background-color: red;");
 		borderPane.setLeft(leftBox);
 
 		gridPane = new GridPane();
-//		gridPane.setPadding(new Insets(0, 0, 0, 0));
 		gridPane.setAlignment(Pos.CENTER);
 
 		setGridElements();
@@ -104,13 +107,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private void setGridElements() {
 		ArrayList<Button> buttons = new ArrayList<Button>();
-		ArrayList<ComboBox> comboBoxes = new ArrayList<ComboBox>();
+		ArrayList<ComboBox<String>> comboBoxes = new ArrayList<ComboBox<String>>();
 
 		createButtonsAndComboBoxes(buttons, comboBoxes);
 		disableButtonsAndComboBoxes(buttons, comboBoxes);
 	}
 
-	private void createButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox> comboBoxes) {
+	private void createButtonsAndComboBoxes(ArrayList<Button> buttons, final ArrayList<ComboBox<String>> comboBoxes) {
 		int row = 1;
 		int col = 1;
 		int buttonId = 1;
@@ -118,18 +121,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 		RaspberryHashMap piMap = new RaspberryHashMap();
 		piMap.createHashMap();
-
-		//TODO spravit na 40 iteracii a optimalizovat
-//		for (int i = 0; i < 40; i++) {
-//			if (col == 5) {
-//				col = 1;
-//				row++;
-//			}
-//			
-//			
-//			
-//			col++;
-//		}
 
 		for (int i = 1; i <= 80; i++) {
 			if (col == 5) {
@@ -150,33 +141,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 			if (col == 1 || col == 4) {
 				comboBox = new ComboBox<String>(options);
-				comboBoxes.add(comboBox);
-				comboBox.setPrefWidth(110);
 				comboBox.setId(String.valueOf(comboBoxId));
+				comboBox.setPrefWidth(110);
 				comboBox.getSelectionModel().selectFirst();
+				comboBoxes.add(comboBox);
 				comboBoxId++;
 				gridPane.add(comboBox, col, row);
 			} else {
 				button = new Button();
-				buttons.add(button);
+				button.setId(String.valueOf(buttonId));
 				button.setUserData("0");
 				button.setStyle("-fx-font-size: 12");
 				button.setMinSize(35, 35);
-				button.setId(String.valueOf(buttonId));
+				button.setText(String.valueOf(buttonId));
+				buttons.add(button);
 				buttonId++;
-				button.setText(String.valueOf(buttonId - 1));
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
-						String valueToSend;
-						if (!isPressed(button)) {
-							valueToSend = "1";
-							setPressed(button, "1");
-						} else {
-							valueToSend = "0";
-							setPressed(button, "0");
-						}
-						//TODO if Integer value of button get text < 10 then "0" + button get text
-						networking.toggleLed(button, valueToSend, getIp(), PORT);
+						toggleButton(button, comboBoxes.get(Integer.valueOf(button.getId())-1));
 					}
 				});
 				gridPane.add(button, col, row);
@@ -185,7 +167,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	private void disableButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox> comboBoxes) {
+	private void disableButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox<String>> comboBoxes) {
 		for (int i = 0; i < 40; i++) {
 			if (comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR5")
 					|| comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR3")
@@ -196,12 +178,23 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
+	private void toggleButton(Button button, ComboBox<String> comboBox) {
+		String valueToSend;
+		if (!isPressed(button)) {
+			valueToSend = "1";
+			setPressed(button, "1");
+		} else {
+			valueToSend = "0";
+			setPressed(button, "0");
+		}
+		networking.toggleLed(button, comboBox, valueToSend, getIp(), PORT);
+	}
+
 	private void setButtons() {
 		echoButton = new Button("Send echo");
 		echoButton.setOnAction(this);
-		testButton = new Button("Toggle LED");
-		testButton.setOnAction(this);
-		//TODO send request to get all values of all buttons
+		requestButton = new Button("Request status");
+		requestButton.setOnAction(this);
 	}
 
 	private void setValidationBorder(String IpAddress, TextField textField) {

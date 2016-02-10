@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 
 @SuppressWarnings("restriction")
 public class Networking {
@@ -35,7 +36,9 @@ public class Networking {
 		}).start();
 	}
 
-	public void toggleLed(final Button button, final String valueToSend, final String serverIP, final int serverPort) {
+	public String sendStatusRequest(final String serverIP, final int serverPort) {
+		//TODO google: java thread return value
+		final String response = null;
 		new Thread(new Runnable() {
 			public void run() {
 				Socket socket;
@@ -44,16 +47,9 @@ public class Networking {
 					socket.setSoTimeout(5000);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					//TODO nastavit typ pinu
-					if (Integer.valueOf(button.getText().trim()) < 10) {
-						System.out.println("Sending: " + getDateAndTime() + "GPIO:" + "0" + button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + "GPIO:" + "0" + button.getText().trim() + valueToSend);
-					} else {
-						System.out.println("Sending: " + getDateAndTime() + "GPIO:" + button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + "GPIO:" + button.getText().trim() + valueToSend);
-					}
-					//TODO ohandlovat parsnuty string
-					String response = in.readLine();
+					out.println(getDateAndTime() + "REQUEST:990");
+					//TODO ohandlovat spatnu vazbu
+					System.out.println(in.readLine());
 					socket.close();
 				} catch (UnknownHostException e) {
 					System.out.println(e);
@@ -62,19 +58,35 @@ public class Networking {
 				}
 			}
 		}).start();
+		return response;
 	}
 
-	//TODO remove after test
-	public void testGpio11(final String serverIP, final int serverPort) {
+	public void toggleLed(final Button button, final ComboBox<String> comboBox, final String valueToSend,
+			final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
 				Socket socket;
 				try {
 					socket = new Socket(serverIP, serverPort);
+					socket.setSoTimeout(5000);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					out.println(getDateAndTime() + "GPIO:111");
-					System.out.println(in.readLine());
+					if (Integer.valueOf(button.getText().trim()) < 10) {
+						System.out.println("Sending: " + getDateAndTime()
+								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
+								+ button.getText().trim() + valueToSend);
+						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
+								+ "0" + button.getText().trim() + valueToSend);
+					} else {
+						System.out.println("Sending: " + getDateAndTime()
+								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":"
+								+ button.getText().trim() + valueToSend);
+						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
+								+ button.getText().trim() + valueToSend);
+					}
+					String response = in.readLine();
+					//TODO ohandlovat parsnuty string
+					System.out.println(response);
 					socket.close();
 				} catch (UnknownHostException e) {
 					System.out.println(e);
