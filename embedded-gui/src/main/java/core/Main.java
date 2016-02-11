@@ -28,7 +28,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private Button echoButton, requestButton;
 	private GridPane gridPane;
-	
+
 	private static final int PORT = 18924;
 	private String ip = "192.168.168.2";
 	private Networking networking = new Networking();
@@ -39,14 +39,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
-		TextField textField = new TextField();;
+		TextField textField = new TextField();
+		;
 
 		setIpAddressTextField(textField);
 		setButtons();
 		setLayout(borderPane, textField);
-		
-		
-		Scene scene = new Scene(borderPane, 600, 800);
+
+		Scene scene = new Scene(borderPane, 800, 800);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
 		borderPane.requestFocus();
 		primaryStage.setTitle("Embedded systems control");
@@ -54,7 +54,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		primaryStage.setResizable(false);
 		primaryStage.show();
 	}
-	
+
 	private void setIpAddressTextField(final TextField textField) {
 		textField.setPromptText("Default IP address");
 		setValidationBorder(getIp(), textField);
@@ -107,46 +107,89 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private void setGridElements() {
 		ArrayList<Button> buttons = new ArrayList<Button>();
-		ArrayList<ComboBox<String>> comboBoxes = new ArrayList<ComboBox<String>>();
+		ArrayList<ComboBox<String>> pinTypeComboBoxes = new ArrayList<ComboBox<String>>();
+		ArrayList<TextField> textFields = new ArrayList<TextField>();
+		ArrayList<ComboBox<String>> inputOutputComboBoxes = new ArrayList<ComboBox<String>>();
 
-		createButtonsAndComboBoxes(buttons, comboBoxes);
-		disableButtonsAndComboBoxes(buttons, comboBoxes);
+		createGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields);
+		disableGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields);
 	}
 
-	private void createButtonsAndComboBoxes(ArrayList<Button> buttons, final ArrayList<ComboBox<String>> comboBoxes) {
+	private void createGridElements(final ArrayList<Button> buttons, final ArrayList<ComboBox<String>> pinTypeComboBoxes,
+			final ArrayList<ComboBox<String>> inputOutputComboBoxes, final ArrayList<TextField> textFields) {
 		int row = 1;
 		int col = 1;
 		int buttonId = 1;
-		int comboBoxId = 1;
+		int pinTypeComboBoxId = 1;
+		int inputOutputComboBoxId = 1;
+		int textFieldId = 1;
 
 		RaspberryHashMap piMap = new RaspberryHashMap();
 		piMap.createHashMap();
 
-		for (int i = 1; i <= 80; i++) {
-			if (col == 5) {
+		for (int i = 1; i <= 160; i++) {
+			if (col == 9) {
 				col = 1;
 				row++;
 			}
-
-			String[] pinTypes = piMap.getValueByKey(comboBoxId);
-			ObservableList<String> options;
+			if (pinTypeComboBoxId > 40) {
+				pinTypeComboBoxId = 40;
+			}
+			String[] pinTypes = piMap.getValueByKey(pinTypeComboBoxId);
+			ObservableList<String> pinTypeOtions;
 			if (pinTypes.length > 1) {
-				options = FXCollections.observableArrayList(pinTypes[0], pinTypes[1]);
+				pinTypeOtions = FXCollections.observableArrayList(pinTypes[0], pinTypes[1]);
 			} else {
-				options = FXCollections.observableArrayList(pinTypes[0]);
+				pinTypeOtions = FXCollections.observableArrayList(pinTypes[0]);
 			}
 
-			final ComboBox<String> comboBox;
+			final ComboBox<String> pinTypeComboBox;
+			final ComboBox<String> inputOutputComboBox;
 			final Button button;
+			final TextField textField;
 
-			if (col == 1 || col == 4) {
-				comboBox = new ComboBox<String>(options);
-				comboBox.setId(String.valueOf(comboBoxId));
-				comboBox.setPrefWidth(110);
-				comboBox.getSelectionModel().selectFirst();
-				comboBoxes.add(comboBox);
-				comboBoxId++;
-				gridPane.add(comboBox, col, row);
+			if (col == 3 || col == 6) {
+				pinTypeComboBox = new ComboBox<String>(pinTypeOtions);
+				pinTypeComboBox.setId(String.valueOf(pinTypeComboBoxId));
+				pinTypeComboBox.setPrefWidth(110);
+				pinTypeComboBox.getSelectionModel().selectFirst();
+				pinTypeComboBoxes.add(pinTypeComboBox);
+				pinTypeComboBoxId++;
+				pinTypeComboBox.setOnAction(new EventHandler<ActionEvent>() {
+					public void handle(ActionEvent arg0) {
+						setElementsVisibility(pinTypeComboBox,
+								inputOutputComboBoxes.get(Integer.valueOf(pinTypeComboBox.getId()) - 1),
+								textFields.get(Integer.valueOf(pinTypeComboBox.getId()) - 1),
+								buttons.get(Integer.valueOf(pinTypeComboBox.getId()) - 1));
+					}
+				});
+				gridPane.add(pinTypeComboBox, col, row);
+			} else if (col == 1 || col == 8) {
+				textField = new TextField();
+				textField.setId(String.valueOf(textFieldId));
+				textField.setPrefWidth(80);
+				textField.setVisible(false);
+				textFields.add(textField);
+				textFieldId++;
+				gridPane.add(textField, col, row);
+			} else if (col == 2 || col == 7) {
+				ObservableList<String> inputOutputOtions = FXCollections.observableArrayList("OUT", "IN");
+				inputOutputComboBox = new ComboBox<String>(inputOutputOtions);
+				inputOutputComboBox.setId(String.valueOf(inputOutputComboBoxId));
+				inputOutputComboBox.setPrefWidth(80);
+				inputOutputComboBox.getSelectionModel().selectFirst();
+				inputOutputComboBoxes.add(inputOutputComboBox);
+				inputOutputComboBoxId++;
+				inputOutputComboBox.setOnAction(new EventHandler<ActionEvent>() {
+					public void handle(ActionEvent arg0) {
+						if (inputOutputComboBox.getSelectionModel().getSelectedItem().equals("IN")) {
+							buttons.get(Integer.valueOf(inputOutputComboBox.getId()) - 1).setDisable(true);
+						} else {
+							buttons.get(Integer.valueOf(inputOutputComboBox.getId()) - 1).setDisable(false);
+						}
+					}
+				});
+				gridPane.add(inputOutputComboBox, col, row);
 			} else {
 				button = new Button();
 				button.setId(String.valueOf(buttonId));
@@ -158,7 +201,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				buttonId++;
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
-						toggleButton(button, comboBoxes.get(Integer.valueOf(button.getId())-1));
+						if ((inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1).getSelectionModel().getSelectedItem().equals("OUT"))) {
+							toggleButton(button, pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1),
+									textFields.get(Integer.valueOf(button.getId()) - 1));
+						}
 					}
 				});
 				gridPane.add(button, col, row);
@@ -167,18 +213,46 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	private void disableButtonsAndComboBoxes(ArrayList<Button> buttons, ArrayList<ComboBox<String>> comboBoxes) {
+	private void disableGridElements(ArrayList<Button> buttons, ArrayList<ComboBox<String>> pinTypeComboBoxes,
+			final ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<TextField> textFields) {
 		for (int i = 0; i < 40; i++) {
-			if (comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR5")
-					|| comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR3")
-					|| comboBoxes.get(i).getSelectionModel().getSelectedItem().equals("GND")) {
-				comboBoxes.get(i).setDisable(true);
+			if (pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR5")
+					|| pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR3")
+					|| pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("GND")
+					|| pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("EEPROM")) {
+				pinTypeComboBoxes.get(i).setDisable(true);
+				inputOutputComboBoxes.get(i).setVisible(false);
 				buttons.get(i).setDisable(true);
 			}
 		}
 	}
 
-	private void toggleButton(Button button, ComboBox<String> comboBox) {
+	private void setElementsVisibility(ComboBox<String> pinTypeComboBox, ComboBox<String> inputOutputComboBox,
+			TextField textField, Button button) {
+		if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+			textField.setVisible(true);
+			inputOutputComboBox.setVisible(false);
+			button.setDisable(false);
+		} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("SPI")) {
+			textField.setVisible(false);
+			inputOutputComboBox.setVisible(false);
+			button.setDisable(false);
+		} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("UART")) {
+			textField.setVisible(false);
+			inputOutputComboBox.setVisible(false);
+			button.setDisable(false);
+		} else {
+			textField.setVisible(false);
+			inputOutputComboBox.setVisible(true);
+			if (inputOutputComboBox.getSelectionModel().getSelectedItem().equals("OUT")) {
+				button.setDisable(false);
+			} else {
+				button.setDisable(true);
+			}
+		}
+	}
+
+	private void toggleButton(Button button, ComboBox<String> pinTypeComboBox, TextField textField) {
 		String valueToSend;
 		if (!isPressed(button)) {
 			valueToSend = "1";
@@ -187,7 +261,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			valueToSend = "0";
 			setPressed(button, "0");
 		}
-		networking.toggleLed(button, comboBox, valueToSend, getIp(), PORT);
+		//TODO
+		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, getIp(), PORT);
 	}
 
 	private void setButtons() {

@@ -12,6 +12,7 @@ import java.util.Calendar;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextField;
 
 @SuppressWarnings("restriction")
 public class Networking {
@@ -61,8 +62,8 @@ public class Networking {
 		return response;
 	}
 
-	public void toggleLed(final Button button, final ComboBox<String> comboBox, final String valueToSend,
-			final String serverIP, final int serverPort) {
+	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
+			final String valueToSend, final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
 				Socket socket;
@@ -71,18 +72,38 @@ public class Networking {
 					socket.setSoTimeout(5000);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					if (Integer.valueOf(button.getText().trim()) < 10) {
-						System.out.println("Sending: " + getDateAndTime()
-								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
-								+ button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ "0" + button.getText().trim() + valueToSend);
+					if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+						if (Integer.valueOf(button.getText().trim()) < 10) {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+						} else {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+						}
 					} else {
-						System.out.println("Sending: " + getDateAndTime()
-								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ button.getText().trim() + valueToSend);
+						if (Integer.valueOf(button.getText().trim()) < 10) {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
+									+ button.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
+									+ button.getText().trim() + valueToSend);
+						} else {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + valueToSend);
+						}
 					}
 					String response = in.readLine();
 					//TODO ohandlovat parsnuty string
