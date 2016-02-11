@@ -9,19 +9,36 @@ import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextField;
 
 @SuppressWarnings("restriction")
-public class Networking {
+public class Networking implements Callable<String> {
+	
+	private String ipAddress;
+	private int port;
+	
+	public Networking() {
+	}
+	
+	public Networking(String ipAddress, int port) {
+		this.ipAddress = ipAddress;
+		this.port = port;
+	}
 
 	public void sendEcho(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
 				try {
 					Socket socket = new Socket(serverIP, serverPort);
-					socket.setSoTimeout(5000);
+					socket.setSoTimeout(500);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 					out.println("TOTO POSIELAM DO RPI");
@@ -36,53 +53,72 @@ public class Networking {
 		}).start();
 	}
 
-	public String sendStatusRequest(final String serverIP, final int serverPort) {
-		//TODO google: java thread return value
-		final String response = null;
-		new Thread(new Runnable() {
-			public void run() {
-				Socket socket;
-				try {
-					socket = new Socket(serverIP, serverPort);
-					socket.setSoTimeout(5000);
-					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					out.println(getDateAndTime() + "REQUEST:990");
-					//TODO ohandlovat spatnu vazbu
-					System.out.println(in.readLine());
-					socket.close();
-				} catch (UnknownHostException e) {
-					System.out.println(e);
-				} catch (IOException e) {
-					System.out.println(e);
-				}
-			}
-		}).start();
-		return response;
+	public void sendStatusRequest(final String serverIP, final int serverPort) {
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+		Callable<String> callable = new Networking(serverIP, serverPort);
+		Future<String> future = executor.submit(callable);
+		try {
+			System.out.println(future.get());
+		} catch (InterruptedException e) {
+			System.out.println(e);
+		} catch (ExecutionException e) {
+			System.out.println(e);
+		}
+		executor.shutdown();
 	}
 
-	public void toggleLed(final Button button, final ComboBox<String> comboBox, final String valueToSend,
-			final String serverIP, final int serverPort) {
+	public String call() throws Exception {
+		Socket socket = new Socket(ipAddress, port);
+		socket.setSoTimeout(500);
+		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		out.println(getDateAndTime() + "REQUEST:990");
+		socket.close();
+		return in.readLine();
+	}
+
+	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
+			final String valueToSend, final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
 				Socket socket;
 				try {
 					socket = new Socket(serverIP, serverPort);
-					socket.setSoTimeout(5000);
+					socket.setSoTimeout(500);
 					PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					if (Integer.valueOf(button.getText().trim()) < 10) {
-						System.out.println("Sending: " + getDateAndTime()
-								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":" + "0"
-								+ button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ "0" + button.getText().trim() + valueToSend);
+					if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+						if (Integer.valueOf(button.getText().trim()) < 10) {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+						} else {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + address.getText().trim() + valueToSend);
+						}
 					} else {
-						System.out.println("Sending: " + getDateAndTime()
-								+ comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ button.getText().trim() + valueToSend);
-						out.println(getDateAndTime() + comboBox.getSelectionModel().getSelectedItem().toString() + ":"
-								+ button.getText().trim() + valueToSend);
+						if (Integer.valueOf(button.getText().trim()) < 10) {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
+									+ button.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
+									+ button.getText().trim() + valueToSend);
+						} else {
+							System.out.println("Sending: " + getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + valueToSend);
+							out.println(getDateAndTime()
+									+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
+									+ button.getText().trim() + valueToSend);
+						}
 					}
 					String response = in.readLine();
 					//TODO ohandlovat parsnuty string
