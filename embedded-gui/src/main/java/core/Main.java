@@ -46,7 +46,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		setButtons();
 		setLayout(borderPane, textField);
 
-		Scene scene = new Scene(borderPane, 800, 800);
+		Scene scene = new Scene(borderPane, 800, 900);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
 		borderPane.requestFocus();
 		primaryStage.setTitle("Embedded systems control");
@@ -57,14 +57,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private void setIpAddressTextField(final TextField textField) {
 		textField.setPromptText("Default IP address");
-		setValidationBorder(getIp(), textField);
+		setIpValidationBorder(getIp(), textField);
 		textField.textProperty().addListener(new ChangeListener<String>() {
 			public void changed(ObservableValue<? extends String> observableValue, String oldValue, String newValue) {
 				if (textField.getPromptText().startsWith("D")) {
 					textField.setPromptText("Enter IP address");
 				}
 				setIp(newValue);
-				setValidationBorder(getIp(), textField);
+				setIpValidationBorder(getIp(), textField);
 			}
 		});
 	}
@@ -75,7 +75,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			networking.sendEcho(getIp(), PORT);
 		} else if (event.getSource() == requestButton && isIpAddress(getIp())) {
 			//TODO ked vrati vsetky hodnoty zo servera tak ohandlovat GUI
-			System.out.println(networking.sendStatusRequest(getIp(), PORT));
+			networking.sendStatusRequest(getIp(), PORT);
 		}
 	}
 
@@ -115,7 +115,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		disableGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields);
 	}
 
-	private void createGridElements(final ArrayList<Button> buttons, final ArrayList<ComboBox<String>> pinTypeComboBoxes,
+	private void createGridElements(final ArrayList<Button> buttons,
+			final ArrayList<ComboBox<String>> pinTypeComboBoxes,
 			final ArrayList<ComboBox<String>> inputOutputComboBoxes, final ArrayList<TextField> textFields) {
 		int row = 1;
 		int col = 1;
@@ -169,8 +170,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				textField.setId(String.valueOf(textFieldId));
 				textField.setPrefWidth(80);
 				textField.setVisible(false);
+				textField.setPromptText("Address");
+				setAddressValidationBorder("", textField);
 				textFields.add(textField);
 				textFieldId++;
+				textField.textProperty().addListener(new ChangeListener<String>() {
+					public void changed(ObservableValue<? extends String> observableValue, String oldValue,
+							String newValue) {
+						setAddressValidationBorder(newValue, textField);
+					}
+				});
+				//TODO zistit ci adresa bavi
 				gridPane.add(textField, col, row);
 			} else if (col == 2 || col == 7) {
 				ObservableList<String> inputOutputOtions = FXCollections.observableArrayList("OUT", "IN");
@@ -201,7 +211,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				buttonId++;
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
-						if ((inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1).getSelectionModel().getSelectedItem().equals("OUT"))) {
+						if (isIpAddress(getIp())
+								&& ((inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1).getSelectionModel()
+										.getSelectedItem().equals("OUT")) || (pinTypeComboBoxes
+										.get(Integer.valueOf(button.getId()) - 1).getSelectionModel().getSelectedItem()
+										.equals("I2C") && isValidInput(textFields.get(
+										Integer.valueOf(button.getId()) - 1).getText())))) {
 							toggleButton(button, pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1),
 									textFields.get(Integer.valueOf(button.getId()) - 1));
 						}
@@ -211,6 +226,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			}
 			col++;
 		}
+	}
+
+	private boolean isValidInput(String input) {
+		if (!(input.length() == 4) || input.isEmpty() || !input.startsWith("0")) {
+			return false;
+		} else
+			return true;
 	}
 
 	private void disableGridElements(ArrayList<Button> buttons, ArrayList<ComboBox<String>> pinTypeComboBoxes,
@@ -261,7 +283,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			valueToSend = "0";
 			setPressed(button, "0");
 		}
-		//TODO
 		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, getIp(), PORT);
 	}
 
@@ -272,13 +293,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		requestButton.setOnAction(this);
 	}
 
-	private void setValidationBorder(String IpAddress, TextField textField) {
+	private void setIpValidationBorder(String IpAddress, TextField textField) {
 		if (!isIpAddress(IpAddress)) {
 			textField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
 		} else {
 			textField.setStyle("-fx-border-color: green; -fx-border-width: 2px;");
 		}
+	}
 
+	private void setAddressValidationBorder(String input, TextField textField) {
+		if (isValidInput(input)) {
+			textField.setStyle("-fx-border-color: green; -fx-border-width: 2px;");
+		} else {
+			textField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+		}
 	}
 
 	private boolean isIpAddress(String ip) {
