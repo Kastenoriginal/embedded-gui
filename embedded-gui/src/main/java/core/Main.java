@@ -14,6 +14,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -26,7 +27,7 @@ import sun.net.util.IPAddressUtil;
 @SuppressWarnings("restriction")
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-	private Button echoButton, requestButton;
+	private Button requestButton, connectButton;
 	private GridPane gridPane;
 
 	private static final int PORT = 18924;
@@ -40,42 +41,54 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
 		TextField textField = new TextField();
-		;
+		BorderPane emptyPane = new BorderPane();
 
 		setIpAddressTextField(textField);
 		setButtons();
 		setLayout(borderPane, textField);
 
 		Scene scene = new Scene(borderPane, 800, 900);
+//		Scene emptyScene = new Scene(emptyPane, 800, 900);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
+//		emptyScene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
 		borderPane.requestFocus();
 		primaryStage.setTitle("Embedded systems control");
 		primaryStage.setScene(scene);
+//		primaryStage.setScene(emptyScene);
 		primaryStage.setResizable(false);
 		primaryStage.show();
 	}
 
 	private void setIpAddressTextField(final TextField textField) {
 		textField.setPromptText("Default IP address");
-		setIpValidationBorder(getIp(), textField);
+		setIpValidationBorder(ip, textField);
 		textField.textProperty().addListener(new ChangeListener<String>() {
 			public void changed(ObservableValue<? extends String> observableValue, String oldValue, String newValue) {
 				if (textField.getPromptText().startsWith("D")) {
 					textField.setPromptText("Enter IP address");
 				}
-				setIp(newValue);
-				setIpValidationBorder(getIp(), textField);
+				ip = newValue;
+				setIpValidationBorder(ip, textField);
 			}
 		});
 	}
 
 	public void handle(ActionEvent event) {
-		Networking networking = new Networking();
-		if (event.getSource() == echoButton && isIpAddress(getIp())) {
-			networking.sendEcho(getIp(), PORT);
-		} else if (event.getSource() == requestButton && isIpAddress(getIp())) {
-			//TODO ked vrati vsetky hodnoty zo servera tak ohandlovat GUI
-			networking.sendStatusRequest(getIp(), PORT);
+		if (event.getSource() == requestButton && isIpAddress(ip)) {
+			//TODO Ohandlovat GUI
+			new Thread(new Runnable() {
+				public void run() {
+					networking.sendStatusRequest(ip, PORT);
+				}
+			}).start();
+		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
+			connectButton.setDisable(true);
+			networking.toggleConnectionStatus(ip, PORT, connectButton.getText(), connectButton);
+			setGridElements();
+			//TODO connectnut sa 													// otestovat
+			//TODO TU BUDE OTVORENIE SOCKETU A NECHA SA OTVORENA SESSION			// otestovat
+			//TODO GUI zobrazit po connecte											//TODO - je to len ciastocne
+			//TODO requestovat status kazdu sek po connecte							//TODO
 		}
 	}
 
@@ -83,12 +96,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		HBox topBox = new HBox();
 		topBox.setAlignment(Pos.CENTER);
 		topBox.getChildren().add(textField);
+		topBox.getChildren().add(connectButton);
 //		topBox.setStyle("-fx-background-color: blue;");
 		borderPane.setTop(topBox);
 
 		VBox leftBox = new VBox();
 		leftBox.setAlignment(Pos.TOP_LEFT);
-		leftBox.getChildren().add(echoButton);
 		leftBox.getChildren().add(requestButton);
 //		leftBox.setStyle("-fx-background-color: red;");
 		borderPane.setLeft(leftBox);
@@ -96,7 +109,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		gridPane = new GridPane();
 		gridPane.setAlignment(Pos.CENTER);
 
-		setGridElements();
+//		setGridElements();
 
 		VBox centerBox = new VBox();
 		centerBox.setAlignment(Pos.TOP_CENTER);
@@ -110,26 +123,33 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		ArrayList<ComboBox<String>> pinTypeComboBoxes = new ArrayList<ComboBox<String>>();
 		ArrayList<TextField> textFields = new ArrayList<TextField>();
 		ArrayList<ComboBox<String>> inputOutputComboBoxes = new ArrayList<ComboBox<String>>();
+		ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
 
-		createGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields);
-		disableGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields);
+		createGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields, checkBoxes);
+		disableGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields, checkBoxes);
+		for (CheckBox checkBox : checkBoxes) {
+			toggleElementsEnabled(false, checkBox, textFields, inputOutputComboBoxes, pinTypeComboBoxes, buttons,
+					checkBoxes);
+		}
 	}
 
 	private void createGridElements(final ArrayList<Button> buttons,
 			final ArrayList<ComboBox<String>> pinTypeComboBoxes,
-			final ArrayList<ComboBox<String>> inputOutputComboBoxes, final ArrayList<TextField> textFields) {
+			final ArrayList<ComboBox<String>> inputOutputComboBoxes, final ArrayList<TextField> textFields,
+			final ArrayList<CheckBox> checkBoxes) {
 		int row = 1;
 		int col = 1;
 		int buttonId = 1;
 		int pinTypeComboBoxId = 1;
 		int inputOutputComboBoxId = 1;
 		int textFieldId = 1;
+		int checkBoxId = 1;
 
 		RaspberryHashMap piMap = new RaspberryHashMap();
 		piMap.createHashMap();
 
-		for (int i = 1; i <= 160; i++) {
-			if (col == 9) {
+		for (int i = 1; i <= 200; i++) {
+			if (col == 11) {
 				col = 1;
 				row++;
 			}
@@ -148,24 +168,42 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			final ComboBox<String> inputOutputComboBox;
 			final Button button;
 			final TextField textField;
+			final CheckBox checkBox;
 
-			if (col == 3 || col == 6) {
+			if (col == 1 || col == 10) {
+				checkBox = new CheckBox();
+				checkBox.setId(String.valueOf(checkBoxId));
+				checkBox.setSelected(false);
+				checkBoxes.add(checkBox);
+				checkBoxId++;
+				checkBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
+					public void changed(ObservableValue observableValue, Boolean oldValue, Boolean newValue) {
+						toggleElementsEnabled(newValue, checkBox, textFields, inputOutputComboBoxes, pinTypeComboBoxes,
+								buttons, checkBoxes);
+					}
+				});
+				gridPane.add(checkBox, col, row);
+			} else if (col == 4 || col == 7) {
 				pinTypeComboBox = new ComboBox<String>(pinTypeOtions);
 				pinTypeComboBox.setId(String.valueOf(pinTypeComboBoxId));
 				pinTypeComboBox.setPrefWidth(110);
 				pinTypeComboBox.getSelectionModel().selectFirst();
 				pinTypeComboBoxes.add(pinTypeComboBox);
 				pinTypeComboBoxId++;
-				pinTypeComboBox.setOnAction(new EventHandler<ActionEvent>() {
+				EventHandler<ActionEvent> eventHandler = new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
 						setElementsVisibility(pinTypeComboBox,
 								inputOutputComboBoxes.get(Integer.valueOf(pinTypeComboBox.getId()) - 1),
 								textFields.get(Integer.valueOf(pinTypeComboBox.getId()) - 1),
-								buttons.get(Integer.valueOf(pinTypeComboBox.getId()) - 1));
+								buttons.get(Integer.valueOf(pinTypeComboBox.getId()) - 1),
+								checkBoxes.get(Integer.valueOf(pinTypeComboBox.getId()) - 1));
+						synchronizeI2cElements(pinTypeComboBox, pinTypeComboBoxes, textFields, inputOutputComboBoxes,
+								checkBoxes, this);
 					}
-				});
+				};
+				pinTypeComboBox.setOnAction(eventHandler);
 				gridPane.add(pinTypeComboBox, col, row);
-			} else if (col == 1 || col == 8) {
+			} else if (col == 2 || col == 9) {
 				textField = new TextField();
 				textField.setId(String.valueOf(textFieldId));
 				textField.setPrefWidth(80);
@@ -175,14 +213,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				textFields.add(textField);
 				textFieldId++;
 				textField.textProperty().addListener(new ChangeListener<String>() {
-					public void changed(ObservableValue<? extends String> observableValue, String oldValue,
-							String newValue) {
+					public void changed(ObservableValue observableValue, String oldValue, String newValue) {
 						setAddressValidationBorder(newValue, textField);
 					}
 				});
-				//TODO zistit ci adresa bavi
-				gridPane.add(textField, col, row);
-			} else if (col == 2 || col == 7) {
+				if (Integer.valueOf(textField.getId()) != 5) {
+					gridPane.add(textField, col, row);
+				}
+			} else if (col == 3 || col == 8) {
 				ObservableList<String> inputOutputOtions = FXCollections.observableArrayList("OUT", "IN");
 				inputOutputComboBox = new ComboBox<String>(inputOutputOtions);
 				inputOutputComboBox.setId(String.valueOf(inputOutputComboBoxId));
@@ -211,12 +249,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				buttonId++;
 				button.setOnAction(new EventHandler<ActionEvent>() {
 					public void handle(ActionEvent arg0) {
-						if (isIpAddress(getIp())
-								&& ((inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1).getSelectionModel()
-										.getSelectedItem().equals("OUT")) || (pinTypeComboBoxes
-										.get(Integer.valueOf(button.getId()) - 1).getSelectionModel().getSelectedItem()
-										.equals("I2C") && isValidInput(textFields.get(
-										Integer.valueOf(button.getId()) - 1).getText())))) {
+						boolean isIOComboBoxOut = inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1)
+								.getSelectionModel().getSelectedItem().equals("OUT");
+						boolean isIOComboBoxVisible = inputOutputComboBoxes.get(Integer.valueOf(button.getId()) - 1)
+								.isVisible();
+						boolean isPinComboBoxI2C = pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1)
+								.getSelectionModel().getSelectedItem().equals("I2C");
+						boolean isI2CAddressValid = isValidInput(textFields.get(Integer.valueOf(button.getId()) - 1)
+								.getText());
+						if (isIpAddress(ip)
+								&& ((isIOComboBoxOut && isIOComboBoxVisible) || (isPinComboBoxI2C && isI2CAddressValid))) {
 							toggleButton(button, pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1),
 									textFields.get(Integer.valueOf(button.getId()) - 1));
 						}
@@ -235,8 +277,39 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			return true;
 	}
 
+	private void toggleElementsEnabled(boolean newValue, CheckBox checkBox, ArrayList<TextField> textFields,
+			ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<ComboBox<String>> pinTypeComboBoxes,
+			ArrayList<Button> buttons, ArrayList<CheckBox> checkBoxes) {
+		if (newValue) {
+			textFields.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(false);
+			inputOutputComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(false);
+			pinTypeComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(false);
+			buttons.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(false);
+			for (ComboBox<String> comboBox : pinTypeComboBoxes) {
+				if (comboBox.getItems().contains("I2C") && comboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+					checkBoxes.get(Integer.valueOf(comboBox.getId()) - 1).setSelected(true);
+				}
+			}
+		} else {
+			textFields.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(true);
+			inputOutputComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(true);
+			pinTypeComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(true);
+			buttons.get(Integer.valueOf(checkBox.getId()) - 1).setDisable(true);
+			for (ComboBox<String> comboBox : pinTypeComboBoxes) {
+				if (comboBox.getItems().contains("I2C") && comboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+					checkBoxes.get(Integer.valueOf(comboBox.getId()) - 1).setSelected(false);
+				}
+			}
+		}
+		setElementsVisibility(pinTypeComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1),
+				inputOutputComboBoxes.get(Integer.valueOf(checkBox.getId()) - 1),
+				textFields.get(Integer.valueOf(checkBox.getId()) - 1),
+				buttons.get(Integer.valueOf(checkBox.getId()) - 1), checkBox);
+	}
+
 	private void disableGridElements(ArrayList<Button> buttons, ArrayList<ComboBox<String>> pinTypeComboBoxes,
-			final ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<TextField> textFields) {
+			final ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<TextField> textFields,
+			ArrayList<CheckBox> checkBoxes) {
 		for (int i = 0; i < 40; i++) {
 			if (pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR5")
 					|| pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("PWR3")
@@ -244,32 +317,56 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 					|| pinTypeComboBoxes.get(i).getSelectionModel().getSelectedItem().equals("EEPROM")) {
 				pinTypeComboBoxes.get(i).setDisable(true);
 				inputOutputComboBoxes.get(i).setVisible(false);
+				checkBoxes.get(i).setVisible(false);
 				buttons.get(i).setDisable(true);
 			}
 		}
 	}
 
 	private void setElementsVisibility(ComboBox<String> pinTypeComboBox, ComboBox<String> inputOutputComboBox,
-			TextField textField, Button button) {
-		if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
-			textField.setVisible(true);
-			inputOutputComboBox.setVisible(false);
-			button.setDisable(false);
-		} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("SPI")) {
-			textField.setVisible(false);
-			inputOutputComboBox.setVisible(false);
-			button.setDisable(false);
-		} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("UART")) {
-			textField.setVisible(false);
-			inputOutputComboBox.setVisible(false);
-			button.setDisable(false);
-		} else {
-			textField.setVisible(false);
-			inputOutputComboBox.setVisible(true);
-			if (inputOutputComboBox.getSelectionModel().getSelectedItem().equals("OUT")) {
+			TextField textField, Button button, CheckBox checkBox) {
+		if (checkBox.isSelected()) {
+			if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+				textField.setVisible(true);
+				inputOutputComboBox.setVisible(false);
+				button.setDisable(false);
+			} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("SPI")) {
+				textField.setVisible(false);
+				inputOutputComboBox.setVisible(false);
+				button.setDisable(false);
+			} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("UART")) {
+				textField.setVisible(false);
+				inputOutputComboBox.setVisible(false);
 				button.setDisable(false);
 			} else {
-				button.setDisable(true);
+				textField.setVisible(false);
+				inputOutputComboBox.setVisible(true);
+				if (inputOutputComboBox.getSelectionModel().getSelectedItem().equals("OUT")) {
+					button.setDisable(false);
+				} else {
+					button.setDisable(true);
+				}
+			}
+		}
+	}
+
+	private void synchronizeI2cElements(ComboBox<String> pinTypeComboBox,
+			ArrayList<ComboBox<String>> pinTypeComboBoxes, ArrayList<TextField> textFields,
+			ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<CheckBox> checkBoxes, EventHandler<ActionEvent> eventHandler) {
+
+		if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+			for (ComboBox<String> comboBox : pinTypeComboBoxes) {
+				if (comboBox.getItems().contains("I2C")) {
+					comboBox.getSelectionModel().select("I2C");
+					checkBoxes.get(Integer.valueOf(comboBox.getId()) - 1).setSelected(true);
+				}
+			}
+		} else if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("GPIO")
+				&& pinTypeComboBox.getItems().contains("I2C")) {
+			for (ComboBox<String> comboBox : pinTypeComboBoxes) {
+				if (comboBox.getItems().contains("I2C")) {
+					comboBox.getSelectionModel().select("GPIO");
+				}
 			}
 		}
 	}
@@ -283,14 +380,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			valueToSend = "0";
 			setPressed(button, "0");
 		}
-		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, getIp(), PORT);
+		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, ip, PORT);
 	}
 
 	private void setButtons() {
-		echoButton = new Button("Send echo");
-		echoButton.setOnAction(this);
 		requestButton = new Button("Request status");
 		requestButton.setOnAction(this);
+		connectButton = new Button("Connect");
+		connectButton.setOnAction(this);
 	}
 
 	private void setIpValidationBorder(String IpAddress, TextField textField) {
@@ -333,14 +430,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			System.out.println(e);
 			return false;
 		}
-	}
-
-	public String getIp() {
-		return ip;
-	}
-
-	public void setIp(String ip) {
-		this.ip = ip;
 	}
 
 	public boolean isPressed(Button button) {
