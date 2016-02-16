@@ -22,86 +22,109 @@ import javafx.scene.control.TextField;
 @SuppressWarnings("restriction")
 public class Networking implements Callable<String> {
 
-	private boolean connected = false;
-	Socket socket;
-	PrintWriter out;
-	BufferedReader in;
+	private static boolean connected = false;
+	private static Socket socket;
+	private static PrintWriter out;
+	private static BufferedReader in;
+	private String command = "";
+	private String serverIP;
+	private int serverPort;
+	private String connectionButtonCommand;
+	private Callable<String> callable;
 
 	public Networking() {
 	}
 
-	public Networking(String ipAddress, int port) {
+	public Networking(String command) {
+		this.command = command;
+	}
+
+	public Networking(String serverIP, int serverPort) {
+		this.serverIP = serverIP;
+		this.serverPort = serverPort;
+	}
+
+	public Networking(String command, String serverIP, int serverPort) {
+		this.command = command;
+		this.serverIP = serverIP;
+		this.serverPort = serverPort;
 	}
 
 	public void toggleConnectionStatus(final String serverIP, final int serverPort, final String connectionCommand,
 			final Button button) {
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+		callable = new Networking(connectionCommand, serverIP, serverPort);
+		Future<String> future = executor.submit(callable);
+		try {
+			String response = future.get();
+			setConnectionButtonCommand(response);
+		} catch (InterruptedException e) {
+			System.out.println(e);
+		} catch (ExecutionException e) {
+			System.out.println(e);
+		}
+		executor.shutdown();
+	}
+
+	public void sendStatusRequest(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
-				try {
-					if (!isConnected() && connectionCommand.equals("Connect")) {
-						socket = new Socket(serverIP, serverPort);
-						socket.setSoTimeout(500);
-						out = new PrintWriter(socket.getOutputStream(), true);
-						out.println(connectionCommand);
-						in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-						if (in.readLine().equals("connected to server.")) {
-							setConnected(true);
-							button.setText("Disconnect");
-							button.setDisable(false);
-						}
-					} else if (isConnected() && connectionCommand.equals("Disconnect")) {
-						out = new PrintWriter(socket.getOutputStream(), true);
-						in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-						out.println(connectionCommand);
-						System.out.println("Connection status: " + in.readLine());
-						if (in.readLine().equals("disconnected from server.")) {
-							socket.close();
-							setConnected(false);
-							button.setText("Connect");
-							button.setDisable(false);
-						}
+				if (connected) {
+					String command = "request";
+					ExecutorService executor = Executors.newFixedThreadPool(3);
+					callable = new Networking(command);
+					Future<String> future = executor.submit(callable);
+					try {
+						//TODO handle
+						System.out.println(future.get());
+					} catch (InterruptedException e) {
+						System.out.println(e);
+					} catch (ExecutionException e) {
+						System.out.println(e);
 					}
-				} catch (UnknownHostException e) {
-					System.out.println(e);
-					button.setDisable(false);
-				} catch (IOException e) {
-					System.out.println(e);
-					button.setDisable(false);
+					executor.shutdown();
 				}
 			}
 		}).start();
 	}
 
-	public void sendStatusRequest(final String serverIP, final int serverPort) {
-		if (isConnected()) {
-			ExecutorService executor = Executors.newFixedThreadPool(3);
-			Callable<String> callable = new Networking();
-			Future<String> future = executor.submit(callable);
-			try {
-				System.out.println(future.get());
-			} catch (InterruptedException e) {
-				System.out.println(e);
-			} catch (ExecutionException e) {
-				System.out.println(e);
-			}
-			executor.shutdown();
-		}
-	}
-
 	public String call() throws Exception {
-//		Socket socket = new Socket(ipAddress, port);
-//		socket.setSoTimeout(5000);
-//		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-//		BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		out.println(getDateAndTime() + "REQUEST:990");
-		String response = in.readLine();
-		socket.close();
-		return response;
+		String response;
+		if (connected && command.equals("request")) {
+			command = "";
+			out.println(getDateAndTime() + "REQUEST:990");
+			response = in.readLine();
+			return response;
+		} else if (!connected && command.equals("Connect")) {
+			socket = new Socket(serverIP, serverPort);
+			out = new PrintWriter(socket.getOutputStream(), true);
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			out.println(command);
+			command = "";
+			response = in.readLine();
+			if (response.equals("connected to server.")) {
+				connected = true;
+				response = response + "&Disconnect";
+			}
+			return response;
+		} else if (connected && command.equals("Disconnect")) {
+			out.println(command);
+			command = "";
+			response = in.readLine();
+			if (response.equals("disconnected from server.")) {
+				socket.close();
+				connected = false;
+				response = response + "&Connect";
+			}
+			return response;
+		} else {
+			return "NUUUUULLLLLLLL";
+		}
 	}
 
 	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
 			final String valueToSend, final String serverIP, final int serverPort) {
-		if (isConnected()) {
+		if (connected) {
 			new Thread(new Runnable() {
 				public void run() {
 //					Socket socket;
@@ -163,11 +186,11 @@ public class Networking implements Callable<String> {
 		return dateFormat.format(calendar.getTime());
 	}
 
-	public boolean isConnected() {
-		return connected;
+	public String getConnectionButtonCommand() {
+		return connectionButtonCommand;
 	}
 
-	public void setConnected(boolean connected) {
-		this.connected = connected;
+	public void setConnectionButtonCommand(String connectionButtonCommand) {
+		this.connectionButtonCommand = connectionButtonCommand;
 	}
 }

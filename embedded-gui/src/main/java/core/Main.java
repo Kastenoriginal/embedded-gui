@@ -76,14 +76,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void handle(ActionEvent event) {
 		if (event.getSource() == requestButton && isIpAddress(ip)) {
 			//TODO Ohandlovat GUI
-			new Thread(new Runnable() {
-				public void run() {
-					networking.sendStatusRequest(ip, PORT);
-				}
-			}).start();
+			networking.sendStatusRequest(ip, PORT);
 		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText(), connectButton);
+			if (networking.getConnectionButtonCommand().split("&")[1].equals("Disconnect")) {
+				connectButton.setText("Disconnect");
+				connectButton.setDisable(false);
+			} else if (networking.getConnectionButtonCommand().split("&")[1].equals("Connect")) {
+				connectButton.setText("Connect");
+				connectButton.setDisable(false);
+			}
 			setGridElements();
 			//TODO connectnut sa 													// otestovat
 			//TODO TU BUDE OTVORENIE SOCKETU A NECHA SA OTVORENA SESSION			// otestovat
@@ -352,7 +355,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private void synchronizeI2cElements(ComboBox<String> pinTypeComboBox,
 			ArrayList<ComboBox<String>> pinTypeComboBoxes, ArrayList<TextField> textFields,
-			ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<CheckBox> checkBoxes, EventHandler<ActionEvent> eventHandler) {
+			ArrayList<ComboBox<String>> inputOutputComboBoxes, ArrayList<CheckBox> checkBoxes,
+			EventHandler<ActionEvent> eventHandler) {
 
 		if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
 			for (ComboBox<String> comboBox : pinTypeComboBoxes) {
