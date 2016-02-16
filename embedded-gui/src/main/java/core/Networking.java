@@ -22,14 +22,13 @@ import javafx.scene.control.TextField;
 @SuppressWarnings("restriction")
 public class Networking implements Callable<String> {
 
-	private static boolean connected = false;
+	private boolean connected = false;
 	private static Socket socket;
 	private static PrintWriter out;
 	private static BufferedReader in;
+	private int serverPort;
 	private String command = "";
 	private String serverIP;
-	private int serverPort;
-	private String connectionButtonCommand;
 	private Callable<String> callable;
 
 	public Networking() {
@@ -56,8 +55,8 @@ public class Networking implements Callable<String> {
 		callable = new Networking(connectionCommand, serverIP, serverPort);
 		Future<String> future = executor.submit(callable);
 		try {
-			String response = future.get();
-			setConnectionButtonCommand(response);
+			//TODO handle future.get() if needed in future
+			System.out.println(future.get());
 		} catch (InterruptedException e) {
 			System.out.println(e);
 		} catch (ExecutionException e) {
@@ -69,13 +68,13 @@ public class Networking implements Callable<String> {
 	public void sendStatusRequest(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
-				if (connected) {
+				if (isConnected()) {
 					String command = "request";
 					ExecutorService executor = Executors.newFixedThreadPool(3);
 					callable = new Networking(command);
 					Future<String> future = executor.submit(callable);
 					try {
-						//TODO handle
+						//TODO handle status request
 						System.out.println(future.get());
 					} catch (InterruptedException e) {
 						System.out.println(e);
@@ -90,12 +89,12 @@ public class Networking implements Callable<String> {
 
 	public String call() throws Exception {
 		String response;
-		if (connected && command.equals("request")) {
+		if (isConnected() && command.equals("request")) {
 			command = "";
 			out.println(getDateAndTime() + "REQUEST:990");
 			response = in.readLine();
 			return response;
-		} else if (!connected && command.equals("Connect")) {
+		} else if (!isConnected() && command.equals("Connect")) {
 			socket = new Socket(serverIP, serverPort);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -103,28 +102,26 @@ public class Networking implements Callable<String> {
 			command = "";
 			response = in.readLine();
 			if (response.equals("connected to server.")) {
-				connected = true;
-				response = response + "&Disconnect";
+				setConnected(true);
 			}
 			return response;
-		} else if (connected && command.equals("Disconnect")) {
+		} else if (isConnected() && command.equals("Disconnect")) {
 			out.println(command);
 			command = "";
 			response = in.readLine();
 			if (response.equals("disconnected from server.")) {
 				socket.close();
-				connected = false;
-				response = response + "&Connect";
+				setConnected(false);
 			}
 			return response;
 		} else {
-			return "NUUUUULLLLLLLL";
+			return "No response from server.";
 		}
 	}
 
 	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
 			final String valueToSend, final String serverIP, final int serverPort) {
-		if (connected) {
+		if (isConnected()) {
 			new Thread(new Runnable() {
 				public void run() {
 //					Socket socket;
@@ -167,7 +164,7 @@ public class Networking implements Callable<String> {
 							}
 						}
 						String response = in.readLine();
-						//TODO ohandlovat parsnuty string
+						//TODO ohandlovat parsnuty string ako response z pinu
 						System.out.println(response);
 //						socket.close();
 					} catch (UnknownHostException e) {
@@ -185,12 +182,12 @@ public class Networking implements Callable<String> {
 		Calendar calendar = Calendar.getInstance();
 		return dateFormat.format(calendar.getTime());
 	}
-
-	public String getConnectionButtonCommand() {
-		return connectionButtonCommand;
+	
+	public boolean isConnected() {
+		return connected;
 	}
 
-	public void setConnectionButtonCommand(String connectionButtonCommand) {
-		this.connectionButtonCommand = connectionButtonCommand;
+	public void setConnected(boolean connected) {
+		this.connected = connected;
 	}
 }

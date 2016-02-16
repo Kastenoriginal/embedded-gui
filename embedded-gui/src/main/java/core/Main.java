@@ -75,22 +75,22 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	public void handle(ActionEvent event) {
 		if (event.getSource() == requestButton && isIpAddress(ip)) {
-			//TODO Ohandlovat GUI
+			//TODO Ohandlovat GUI po vrateni statusu zo servera
 			networking.sendStatusRequest(ip, PORT);
 		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText(), connectButton);
-			if (networking.getConnectionButtonCommand().split("&")[1].equals("Disconnect")) {
+			if (!networking.isConnected()) {
 				connectButton.setText("Disconnect");
 				connectButton.setDisable(false);
-			} else if (networking.getConnectionButtonCommand().split("&")[1].equals("Connect")) {
+			} else if (networking.isConnected()) {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
 			}
 			setGridElements();
-			//TODO connectnut sa 													// otestovat
-			//TODO TU BUDE OTVORENIE SOCKETU A NECHA SA OTVORENA SESSION			// otestovat
-			//TODO GUI zobrazit po connecte											//TODO - je to len ciastocne
+			//TODO connectnut sa 													// TODO - disconnect poriesit
+			//TODO TU BUDE OTVORENIE SOCKETU A NECHA SA OTVORENA SESSION			// Done
+			//TODO GUI zobrazit po connecte											//TODO - je to len ciastocne // na testovacie ucely bez RPI
 			//TODO requestovat status kazdu sek po connecte							//TODO
 		}
 	}
