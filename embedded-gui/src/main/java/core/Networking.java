@@ -22,7 +22,7 @@ import javafx.scene.control.TextField;
 @SuppressWarnings("restriction")
 public class Networking implements Callable<String> {
 
-	private boolean connected = false;
+	private static boolean connected = false;
 	private static Socket socket;
 	private static PrintWriter out;
 	private static BufferedReader in;
@@ -86,6 +86,33 @@ public class Networking implements Callable<String> {
 			}
 		}).start();
 	}
+	
+	public void receiveAllPinStatus(){
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+					String allPinStatus = in.readLine();
+					System.out.println(allPinStatus);
+					if (allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
+						String[] partialStatus = allPinStatus.split(";");
+						for (int i = 0; i < partialStatus.length; i++) {
+							Parser parser = new Parser(allPinStatus);
+							System.out.println(allPinStatus);
+							System.out.println(partialStatus[i]);
+							//TODO getblabla
+						}
+						
+						
+						
+						//TODO ohandlovat to co prislo
+						//TODO dokoncit parser
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}).start();
+	}
 
 	public String call() throws Exception {
 		String response;
@@ -120,31 +147,26 @@ public class Networking implements Callable<String> {
 	}
 
 	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
-			final String valueToSend, final String serverIP, final int serverPort) {
+			final String valueToSend, final String serverIP, final int serverPort, final String i2cMessage) {
 		if (isConnected()) {
 			new Thread(new Runnable() {
 				public void run() {
-//					Socket socket;
 					try {
-//						socket = new Socket(serverIP, serverPort);
-//						socket.setSoTimeout(500);
-//						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-//						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 						if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
 							if (Integer.valueOf(button.getText().trim()) < 10) {
 								System.out.println("Sending: " + getDateAndTime()
 										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + address.getText().trim() + valueToSend);
+										+ button.getText().trim() + address.getText().trim() + i2cMessage);
 								out.println(getDateAndTime()
 										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + address.getText().trim() + valueToSend);
+										+ button.getText().trim() + address.getText().trim() + i2cMessage);
 							} else {
 								System.out.println("Sending: " + getDateAndTime()
 										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + address.getText().trim() + valueToSend);
+										+ button.getText().trim() + address.getText().trim() + i2cMessage);
 								out.println(getDateAndTime()
 										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + address.getText().trim() + valueToSend);
+										+ button.getText().trim() + address.getText().trim() + i2cMessage);
 							}
 						} else {
 							if (Integer.valueOf(button.getText().trim()) < 10) {
@@ -183,11 +205,11 @@ public class Networking implements Callable<String> {
 		return dateFormat.format(calendar.getTime());
 	}
 	
-	public boolean isConnected() {
+	public static boolean isConnected() {
 		return connected;
 	}
 
-	public void setConnected(boolean connected) {
-		this.connected = connected;
+	public static void setConnected(boolean connected) {
+		Networking.connected = connected;
 	}
 }

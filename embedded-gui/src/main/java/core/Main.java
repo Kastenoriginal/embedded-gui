@@ -29,6 +29,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 	private Button requestButton, connectButton;
 	private GridPane gridPane;
+	private TextField messageTextField;
 
 	private static final int PORT = 18924;
 	private String ip = "192.168.168.2";
@@ -42,7 +43,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		BorderPane borderPane = new BorderPane();
 		TextField textField = new TextField();
 		BorderPane emptyPane = new BorderPane();
-
+		messageTextField = new TextField();
+		messageTextField.setPromptText("I2C message");
+		messageTextField.setPrefWidth(600);
+		messageTextField.setAlignment(Pos.CENTER);
+		
 		setIpAddressTextField(textField);
 		setButtons();
 		setLayout(borderPane, textField);
@@ -80,18 +85,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText(), connectButton);
-			if (!networking.isConnected()) {
+			if (Networking.isConnected()) {
 				connectButton.setText("Disconnect");
 				connectButton.setDisable(false);
-			} else if (networking.isConnected()) {
+			} else if (!Networking.isConnected()) {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
 			}
+			
+			//TODO odkomentovat cyklus ked bude fungovat na button
+//			while (Networking.isConnected()) {
+//				networking.receiveAllPinStatus();
+//			}
+			
 			setGridElements();
-			//TODO connectnut sa 													// TODO - disconnect poriesit
-			//TODO TU BUDE OTVORENIE SOCKETU A NECHA SA OTVORENA SESSION			// Done
-			//TODO GUI zobrazit po connecte											//TODO - je to len ciastocne // na testovacie ucely bez RPI
-			//TODO requestovat status kazdu sek po connecte							//TODO
+			
+			//TODO GUI zobrazit po connecte	//TODO - je to len ciastocne po kliknuti na button // na testovacie ucely bez RPI
+			//TODO requestovat status kazdu sek po connecte - to je cez tlacidlo connect
+			//TODO po disconnect neprijimat response na stav pinov
+			//TODO ked nebude mat response from server po 5 sec tak sa nastavi na offline
+			//TODO aj ked je OUT aj ked IN GPIO tak ukazat momentalny stav pinu 1/0
+			//TEST I2C message
 		}
 	}
 
@@ -119,6 +133,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		centerBox.getChildren().add(gridPane);
 //		centerBox.setStyle("-fx-background-color: green;");
 		borderPane.setCenter(centerBox);
+		
+		HBox bottomBox = new HBox();
+		bottomBox.setAlignment(Pos.BOTTOM_CENTER);
+		bottomBox.getChildren().add(messageTextField);
+//		bottomBox.setStyle("-fx-background-color: magenta;");
+		borderPane.setBottom(bottomBox);
 	}
 
 	private void setGridElements() {
@@ -180,6 +200,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				checkBoxes.add(checkBox);
 				checkBoxId++;
 				checkBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
+					@SuppressWarnings("rawtypes")
 					public void changed(ObservableValue observableValue, Boolean oldValue, Boolean newValue) {
 						toggleElementsEnabled(newValue, checkBox, textFields, inputOutputComboBoxes, pinTypeComboBoxes,
 								buttons, checkBoxes);
@@ -216,6 +237,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				textFields.add(textField);
 				textFieldId++;
 				textField.textProperty().addListener(new ChangeListener<String>() {
+					@SuppressWarnings("rawtypes")
 					public void changed(ObservableValue observableValue, String oldValue, String newValue) {
 						setAddressValidationBorder(newValue, textField);
 					}
@@ -260,10 +282,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 								.getSelectionModel().getSelectedItem().equals("I2C");
 						boolean isI2CAddressValid = isValidInput(textFields.get(Integer.valueOf(button.getId()) - 1)
 								.getText());
+						boolean isMessageValid = isValidInput(messageTextField.getText());
 						if (isIpAddress(ip)
-								&& ((isIOComboBoxOut && isIOComboBoxVisible) || (isPinComboBoxI2C && isI2CAddressValid))) {
+								&& ((isIOComboBoxOut && isIOComboBoxVisible) || (isPinComboBoxI2C && isI2CAddressValid && isMessageValid))) {
 							toggleButton(button, pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1),
-									textFields.get(Integer.valueOf(button.getId()) - 1));
+									textFields.get(Integer.valueOf(button.getId()) - 1), messageTextField.getText());
 						}
 					}
 				});
@@ -375,7 +398,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	private void toggleButton(Button button, ComboBox<String> pinTypeComboBox, TextField textField) {
+	private void toggleButton(Button button, ComboBox<String> pinTypeComboBox, TextField textField, String i2cMessage) {
 		String valueToSend;
 		if (!isPressed(button)) {
 			valueToSend = "1";
@@ -384,7 +407,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			valueToSend = "0";
 			setPressed(button, "0");
 		}
-		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, ip, PORT);
+		networking.togglePin(button, pinTypeComboBox, textField, valueToSend, ip, PORT, i2cMessage);
 	}
 
 	private void setButtons() {
