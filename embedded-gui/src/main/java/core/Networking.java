@@ -22,6 +22,7 @@ import javafx.scene.control.TextField;
 @SuppressWarnings("restriction")
 public class Networking implements Callable<String> {
 
+	private static int count = 1;
 	private static boolean connected = false;
 	private static Socket socket;
 	private static PrintWriter out;
@@ -68,47 +69,45 @@ public class Networking implements Callable<String> {
 	public void sendStatusRequest(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
-				if (isConnected()) {
-					String command = "request";
-					ExecutorService executor = Executors.newFixedThreadPool(3);
-					callable = new Networking(command);
+				ExecutorService executor = Executors.newFixedThreadPool(3);
+				while (connected && count < 6) {
+					callable = new Networking("request");
 					Future<String> future = executor.submit(callable);
 					try {
 						//TODO handle status request
-						System.out.println(future.get());
+						String allPinStatus = future.get();
+						if (allPinStatus == null) {
+							count++;
+						} else {
+							count = 1;
+							receiveAllPinStatus(allPinStatus);
+						}
 					} catch (InterruptedException e) {
 						System.out.println(e);
 					} catch (ExecutionException e) {
 						System.out.println(e);
 					}
-					executor.shutdown();
 				}
+				executor.shutdown();
 			}
 		}).start();
 	}
-	
-	public void receiveAllPinStatus(){
+
+	public void receiveAllPinStatus(final String allPinStatus) {
 		new Thread(new Runnable() {
 			public void run() {
-				try {
-					String allPinStatus = in.readLine();
-					System.out.println(allPinStatus);
-					if (allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
-						String[] partialStatus = allPinStatus.split(";");
-						for (int i = 0; i < partialStatus.length; i++) {
-							Parser parser = new Parser(allPinStatus);
-							System.out.println(allPinStatus);
-							System.out.println(partialStatus[i]);
-							//TODO getblabla
-						}
-						
-						
-						
-						//TODO ohandlovat to co prislo
-						//TODO dokoncit parser
+				if (allPinStatus != null && allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
+					out.println("RECEIVED");
+					System.out.println("Received " + allPinStatus);
+					String[] partialStatus = allPinStatus.split(";");
+					for (int i = 0; i < partialStatus.length; i++) {
+						Parser parser = new Parser(allPinStatus);
+						System.out.println(partialStatus[i]);
+						//TODO getblabla
 					}
-				} catch (IOException e) {
-					e.printStackTrace();
+
+					//TODO ohandlovat to co prislo
+					//TODO dokoncit parser
 				}
 			}
 		}).start();
@@ -119,6 +118,7 @@ public class Networking implements Callable<String> {
 		if (isConnected() && command.equals("request")) {
 			command = "";
 			out.println(getDateAndTime() + "REQUEST:990");
+			System.out.println("reading response");
 			response = in.readLine();
 			return response;
 		} else if (!isConnected() && command.equals("Connect")) {
@@ -204,7 +204,7 @@ public class Networking implements Callable<String> {
 		Calendar calendar = Calendar.getInstance();
 		return dateFormat.format(calendar.getTime());
 	}
-	
+
 	public static boolean isConnected() {
 		return connected;
 	}
