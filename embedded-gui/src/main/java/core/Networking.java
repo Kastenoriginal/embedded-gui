@@ -31,17 +31,13 @@ public class Networking implements Callable<String> {
 	private String command = "";
 	private String serverIP;
 	private Callable<String> callable;
+	private static Thread statusThread;
 
 	public Networking() {
 	}
 
 	public Networking(String command) {
 		this.command = command;
-	}
-
-	public Networking(String serverIP, int serverPort) {
-		this.serverIP = serverIP;
-		this.serverPort = serverPort;
 	}
 
 	public Networking(String command, String serverIP, int serverPort) {
@@ -52,6 +48,7 @@ public class Networking implements Callable<String> {
 
 	public void toggleConnectionStatus(final String serverIP, final int serverPort, final String connectionCommand,
 			final Button button) {
+		//TODO 1 thread
 		ExecutorService executor = Executors.newFixedThreadPool(3);
 		callable = new Networking(connectionCommand, serverIP, serverPort);
 		Future<String> future = executor.submit(callable);
@@ -69,6 +66,7 @@ public class Networking implements Callable<String> {
 	public void sendStatusRequest(final String serverIP, final int serverPort) {
 		new Thread(new Runnable() {
 			public void run() {
+				//TODO 1 thread
 				ExecutorService executor = Executors.newFixedThreadPool(3);
 				while (connected && count < 6) {
 					callable = new Networking("request");
@@ -103,9 +101,8 @@ public class Networking implements Callable<String> {
 					for (int i = 0; i < partialStatus.length; i++) {
 						Parser parser = new Parser(allPinStatus);
 						System.out.println(partialStatus[i]);
-						//TODO getblabla
+						//TODO getparsedveci
 					}
-
 					//TODO ohandlovat to co prislo
 					//TODO dokoncit parser
 				}
