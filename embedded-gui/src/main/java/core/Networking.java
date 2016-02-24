@@ -31,7 +31,7 @@ public class Networking implements Callable<String> {
 	private String command = "";
 	private String serverIP;
 	private Callable<String> callable;
-	private static Thread statusThread;
+//	private static Thread statusThread;
 
 	public Networking() {
 	}
@@ -46,8 +46,7 @@ public class Networking implements Callable<String> {
 		this.serverPort = serverPort;
 	}
 
-	public void toggleConnectionStatus(final String serverIP, final int serverPort, final String connectionCommand,
-			final Button button) {
+	public void toggleConnectionStatus(final String serverIP, final int serverPort, final String connectionCommand) {
 		//TODO 1 thread
 		ExecutorService executor = Executors.newFixedThreadPool(3);
 		callable = new Networking(connectionCommand, serverIP, serverPort);
@@ -67,8 +66,9 @@ public class Networking implements Callable<String> {
 		new Thread(new Runnable() {
 			public void run() {
 				//TODO 1 thread
+				//TODO mozno to bude treba dat do while
 				ExecutorService executor = Executors.newFixedThreadPool(3);
-				while (connected && count < 6) {
+				while (connected) {
 					callable = new Networking("request");
 					Future<String> future = executor.submit(callable);
 					try {
@@ -76,10 +76,16 @@ public class Networking implements Callable<String> {
 						String allPinStatus = future.get();
 						if (allPinStatus == null) {
 							count++;
+							System.out.println("Unable to receive response for " + count + " second(s).");
+							if (count > 5) {
+								System.out.println("Disconnecting from server after " + count + " seconds.");
+								toggleConnectionStatus(serverIP, serverPort, "Disconnect");
+							}
 						} else {
 							count = 1;
 							receiveAllPinStatus(allPinStatus);
 						}
+						Thread.sleep(1000);
 					} catch (InterruptedException e) {
 						System.out.println(e);
 					} catch (ExecutionException e) {
@@ -91,11 +97,35 @@ public class Networking implements Callable<String> {
 		}).start();
 	}
 
+//				ExecutorService executor = Executors.newFixedThreadPool(3);
+//				while (connected && count < 6) {
+//					callable = new Networking("request");
+//					Future<String> future = executor.submit(callable);
+//					try {
+//						//TODO handle status request
+//						String allPinStatus = future.get();
+//						if (allPinStatus == null) {
+//							count++;
+//						} else {
+//							count = 1;
+//							receiveAllPinStatus(allPinStatus);
+//						}
+//					} catch (InterruptedException e) {
+//						System.out.println(e);
+//					} catch (ExecutionException e) {
+//						System.out.println(e);
+//					}
+//				}
+//				executor.shutdown();
+//			}
+//		}).start();
+//	}
+
 	public void receiveAllPinStatus(final String allPinStatus) {
 		new Thread(new Runnable() {
 			public void run() {
 				if (allPinStatus != null && allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
-					out.println("RECEIVED");
+//					out.println("RECEIVED");
 					System.out.println("Received " + allPinStatus);
 					String[] partialStatus = allPinStatus.split(";");
 					for (int i = 0; i < partialStatus.length; i++) {
@@ -110,37 +140,44 @@ public class Networking implements Callable<String> {
 		}).start();
 	}
 
-	public String call() throws Exception {
-		String response;
-		if (isConnected() && command.equals("request")) {
-			command = "";
-			out.println(getDateAndTime() + "REQUEST:990");
-			System.out.println("reading response");
-			response = in.readLine();
-			return response;
-		} else if (!isConnected() && command.equals("Connect")) {
-			socket = new Socket(serverIP, serverPort);
-			out = new PrintWriter(socket.getOutputStream(), true);
-			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			out.println(command);
-			command = "";
-			response = in.readLine();
-			if (response.equals("connected to server.")) {
-				setConnected(true);
+	public String call() {
+		try {
+			String response = in.readLine();
+			if (isConnected() && command.equals("request")) {
+				command = "";
+				out.println(getDateAndTime() + "REQUEST:990");
+				System.out.println("reading response");
+
+				return response;
+			} else if (!isConnected() && command.equals("Connect")) {
+				socket = new Socket(serverIP, serverPort);
+				socket.setSoTimeout(5000);
+				out = new PrintWriter(socket.getOutputStream(), true);
+				in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				out.println(command);
+				command = "";
+				response = in.readLine();
+				if (response.equals("connected to server.")) {
+					connected = true;
+				}
+				return response;
+			} else if (isConnected() && command.equals("Disconnect")) {
+				out.println(command);
+				command = "";
+				response = in.readLine();
+				if (response.equals("disconnected from server.")) {
+					socket.close();
+					connected = false;
+				}
+				return response;
+			} else {
+				return "No response from server.";
 			}
-			return response;
-		} else if (isConnected() && command.equals("Disconnect")) {
-			out.println(command);
-			command = "";
-			response = in.readLine();
-			if (response.equals("disconnected from server.")) {
-				socket.close();
-				setConnected(false);
-			}
-			return response;
-		} else {
-			return "No response from server.";
+		} catch (IOException e) {
+			System.out.println("Connection refused");
+			connected = false;
 		}
+		return "No response from server.";
 	}
 
 	public void togglePin(final Button button, final ComboBox<String> pinTypeComboBox, final TextField address,
@@ -204,9 +241,5 @@ public class Networking implements Callable<String> {
 
 	public static boolean isConnected() {
 		return connected;
-	}
-
-	public static void setConnected(boolean connected) {
-		Networking.connected = connected;
 	}
 }

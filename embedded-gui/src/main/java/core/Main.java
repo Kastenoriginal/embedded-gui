@@ -84,7 +84,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 			networking.sendStatusRequest(ip, PORT);
 		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
-			networking.toggleConnectionStatus(ip, PORT, connectButton.getText(), connectButton);
+			networking.toggleConnectionStatus(ip, PORT, connectButton.getText());
 			if (Networking.isConnected()) {
 				connectButton.setText("Disconnect");
 				connectButton.setDisable(false);
