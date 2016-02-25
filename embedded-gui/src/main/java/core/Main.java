@@ -27,7 +27,7 @@ import sun.net.util.IPAddressUtil;
 @SuppressWarnings("restriction")
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-	private Button requestButton, connectButton;
+	private Button connectButton;
 	private GridPane gridPane;
 	private TextField messageTextField;
 
@@ -42,7 +42,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
 		TextField textField = new TextField();
-		BorderPane emptyPane = new BorderPane();
+		//TODO emptypane
+//		BorderPane emptyPane = new BorderPane();
 		messageTextField = new TextField();
 		messageTextField.setPromptText("I2C message");
 		messageTextField.setPrefWidth(600);
@@ -79,16 +80,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	public void handle(ActionEvent event) {
-		if (event.getSource() == requestButton && isIpAddress(ip)) {
+		/*if (event.getSource() == requestButton && isIpAddress(ip)) {
 			//TODO Ohandlovat GUI po vrateni statusu zo servera
 			networking.sendStatusRequest(ip, PORT);
-		} else if (event.getSource() == connectButton && isIpAddress(ip)) {
+		} else*/ if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText());
-			if (Networking.isConnected()) {
+			if (Networking.connected) {
 				connectButton.setText("Disconnect");
 				connectButton.setDisable(false);
-			} else if (!Networking.isConnected()) {
+			} else if (!Networking.connected) {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
 			}
@@ -119,7 +120,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 		VBox leftBox = new VBox();
 		leftBox.setAlignment(Pos.TOP_LEFT);
-		leftBox.getChildren().add(requestButton);
+		//TODO tu je request button
+//		leftBox.getChildren().add(requestButton);
 //		leftBox.setStyle("-fx-background-color: red;");
 		borderPane.setLeft(leftBox);
 
@@ -204,6 +206,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 					public void changed(ObservableValue observableValue, Boolean oldValue, Boolean newValue) {
 						toggleElementsEnabled(newValue, checkBox, textFields, inputOutputComboBoxes, pinTypeComboBoxes,
 								buttons, checkBoxes);
+						if (newValue) {
+							networking.addPinToSend(checkBox.getId());
+						} else if (!newValue) {
+							networking.removePinToSend(checkBox.getId());
+						}
 					}
 				});
 				gridPane.add(checkBox, col, row);
@@ -411,8 +418,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	private void setButtons() {
-		requestButton = new Button("Request status");
-		requestButton.setOnAction(this);
+		//TODO request button
+//		requestButton = new Button("Request status");
+//		requestButton.setOnAction(this);
 		connectButton = new Button("Connect");
 		connectButton.setOnAction(this);
 	}
