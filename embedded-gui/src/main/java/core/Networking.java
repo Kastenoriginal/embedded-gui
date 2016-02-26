@@ -114,11 +114,14 @@ public class Networking implements Callable<String> {
 				if (allPinStatus != null && allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
 					System.out.println("Received " + allPinStatus);
 					String[] partialStatus = allPinStatus.split(";");
-					for (int i = 0; i < partialStatus.length; i++) {
-						Parser parser = new Parser(allPinStatus);
-						System.out.println(partialStatus[i]);
-						//TODO getparsedveci
+					for (String part : partialStatus) {
+						System.out.println(part);
 					}
+//					for (int i = 0; i < partialStatus.length; i++) {
+//						Parser parser = new Parser(allPinStatus);
+//						System.out.println(partialStatus[i]);
+//						//TODO getparsedveci
+//					}
 					//TODO ohandlovat to co prislo
 					//TODO dokoncit parser
 				}
@@ -138,6 +141,7 @@ public class Networking implements Callable<String> {
 						pinsToRequest = pinsToRequest + ";" + pinToSend;
 					}
 				}
+				System.out.println("SENDING " + pinsToRequest);
 				out.println(getDateAndTime() + "REQUEST:990" + pinsToRequest);
 				System.out.println("reading response");
 				response = in.readLine();
