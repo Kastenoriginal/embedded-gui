@@ -3,6 +3,8 @@ package core;
 import hashmaps.RaspberryHashMap;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -33,6 +35,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public static Button connectButton;
 	
 	private static final int PORT = 18924;
+	private static final Pattern BODY_PATTERN = Pattern.compile("([0-9a-fA-F][0-9a-fA-F])*");
 	
 	private GridPane gridPane;
 	private TextField messageTextField;
@@ -317,10 +320,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	private boolean isValidInput(String input) {
-		if (!(input.length() == 4) || input.isEmpty() || !input.startsWith("0")) {
-			return false;
-		} else
+		Matcher i2CMatcher = BODY_PATTERN.matcher(input);
+		if (i2CMatcher.matches()) {
 			return true;
+		} else {
+			return false;
+		}
+		
+//		if (!(input.length() == 4) || input.isEmpty() || !input.startsWith("0")) {
+//			return false;
+//		} else
+//			return true;
 	}
 
 	private void toggleElementsEnabled(boolean newValue, CheckBox checkBox, ArrayList<TextField> textFields,

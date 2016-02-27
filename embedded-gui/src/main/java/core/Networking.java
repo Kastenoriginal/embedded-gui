@@ -183,37 +183,31 @@ public class Networking implements Callable<String> {
 			new Thread(new Runnable() {
 				public void run() {
 					try {
-						if (pinTypeComboBox.getSelectionModel().getSelectedItem().equals("I2C")) {
+						String pinType = pinTypeComboBox.getSelectionModel().getSelectedItem();
+						String buttonText = button.getText().trim();
+						String addressText = address.getText().trim();
+						String buttontext = button.getText().trim();
+						if (pinType.equals("I2C")) {
 							if (Integer.valueOf(button.getText().trim()) < 10) {
-								System.out.println("Sending: " + getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + address.getText().trim() + i2cMessage);
-								out.println(getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + address.getText().trim() + i2cMessage);
+								System.out.println("Sending: " + getDateAndTime() + pinType.toString() + ":0"
+										+ buttonText + addressText + i2cMessage);
+								out.println(getDateAndTime() + pinType.toString() + ":0" + buttontext + addressText
+										+ i2cMessage);
 							} else {
-								System.out.println("Sending: " + getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + address.getText().trim() + i2cMessage);
-								out.println(getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + address.getText().trim() + i2cMessage);
+								System.out.println("Sending: " + getDateAndTime() + pinType.toString() + ":"
+										+ buttonText + addressText + i2cMessage);
+								out.println(getDateAndTime() + pinType.toString() + ":" + buttontext + addressText
+										+ i2cMessage);
 							}
 						} else {
 							if (Integer.valueOf(button.getText().trim()) < 10) {
-								System.out.println("Sending: " + getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + valueToSend);
-								out.println(getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":0"
-										+ button.getText().trim() + valueToSend);
+								System.out.println("Sending: " + getDateAndTime() + pinType.toString() + ":0"
+										+ buttonText + valueToSend);
+								out.println(getDateAndTime() + pinType.toString() + ":0" + buttontext + valueToSend);
 							} else {
-								System.out.println("Sending: " + getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + valueToSend);
-								out.println(getDateAndTime()
-										+ pinTypeComboBox.getSelectionModel().getSelectedItem().toString() + ":"
-										+ button.getText().trim() + valueToSend);
+								System.out.println("Sending: " + getDateAndTime() + pinType.toString() + ":"
+										+ buttonText + valueToSend);
+								out.println(getDateAndTime() + pinType.toString() + ":" + buttontext + valueToSend);
 							}
 						}
 						String response = in.readLine();
