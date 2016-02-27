@@ -5,6 +5,7 @@ import hashmaps.RaspberryHashMap;
 import java.util.ArrayList;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -22,16 +23,20 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import sun.net.util.IPAddressUtil;
+import javafx.concurrent.*;
 
 @SuppressWarnings("restriction")
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-	private Button connectButton;
+	public static Button connectButton;
+	
+	private static final int PORT = 18924;
+	
 	private GridPane gridPane;
 	private TextField messageTextField;
 
-	private static final int PORT = 18924;
 	private String ip = "192.168.168.2";
 	private Networking networking = new Networking();
 
@@ -42,27 +47,31 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
 		TextField textField = new TextField();
-		//TODO emptypane
-//		BorderPane emptyPane = new BorderPane();
+		
 		messageTextField = new TextField();
 		messageTextField.setPromptText("I2C message");
 		messageTextField.setPrefWidth(600);
 		messageTextField.setAlignment(Pos.CENTER);
-		
+
 		setIpAddressTextField(textField);
 		setButtons();
 		setLayout(borderPane, textField);
 
 		Scene scene = new Scene(borderPane, 800, 900);
-//		Scene emptyScene = new Scene(emptyPane, 800, 900);
 		scene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
-//		emptyScene.getStylesheets().add(getClass().getClassLoader().getResource("Custom style.css").toExternalForm());
 		borderPane.requestFocus();
 		primaryStage.setTitle("Embedded systems control");
 		primaryStage.setScene(scene);
-//		primaryStage.setScene(emptyScene);
 		primaryStage.setResizable(false);
 		primaryStage.show();
+		setGridElements();
+		gridPane.setVisible(false);
+		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+			public void handle(WindowEvent arg0) {
+				networking.disconnect();
+				Platform.exit();
+			}
+		});
 	}
 
 	private void setIpAddressTextField(final TextField textField) {
@@ -80,31 +89,38 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	public void handle(ActionEvent event) {
-		/*if (event.getSource() == requestButton && isIpAddress(ip)) {
-			//TODO Ohandlovat GUI po vrateni statusu zo servera
-			networking.sendStatusRequest(ip, PORT);
-		} else*/ if (event.getSource() == connectButton && isIpAddress(ip)) {
+		//TODO Ohandlovat GUI po vrateni statusu zo servera
+		if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText());
 			if (Networking.connected) {
-				connectButton.setText("Disconnect");
 				connectButton.setDisable(false);
+				connectButton.setText("Disconnect");
+				Task<Void> task = new Task<Void>() {
+					public Void call() throws Exception {
+						while (Networking.connected) {
+							Platform.runLater(new Runnable() {
+								public void run() {
+									ResponseParser parser = Networking.responseParser;
+									if (parser != null) {
+										//TODO tu dat vsetky partial status spravit parser a ohandlovat GUI
+									}
+								}
+							});
+							Thread.sleep(1000);
+						}
+						return null;
+					}
+				};
+				Thread thread = new Thread(task);
+				thread.start();
+				gridPane.setVisible(true);
 			} else if (!Networking.connected) {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
+				gridPane.setVisible(false);
 			}
-			
-			//TODO odkomentovat cyklus ked bude fungovat na button
-//			while (Networking.isConnected()) {
-//				networking.receiveAllPinStatus();
-//			}
-			
-			setGridElements();
-			
-			//TODO GUI zobrazit po connecte	//TODO - je to len ciastocne po kliknuti na button // na testovacie ucely bez RPI
-			//TODO requestovat status kazdu sek po connecte - to je cez tlacidlo connect
-			//TODO po disconnect neprijimat response na stav pinov
-			//TODO ked nebude mat response from server po 5 sec tak sa nastavi na offline
+
 			//TODO aj ked je OUT aj ked IN GPIO tak ukazat momentalny stav pinu 1/0
 			//TEST I2C message
 		}
@@ -120,9 +136,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 		VBox leftBox = new VBox();
 		leftBox.setAlignment(Pos.TOP_LEFT);
-		//TODO tu je request button
-//		leftBox.getChildren().add(requestButton);
-//		leftBox.setStyle("-fx-background-color: red;");
 		borderPane.setLeft(leftBox);
 
 		gridPane = new GridPane();
@@ -135,7 +148,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		centerBox.getChildren().add(gridPane);
 //		centerBox.setStyle("-fx-background-color: green;");
 		borderPane.setCenter(centerBox);
-		
+
 		HBox bottomBox = new HBox();
 		bottomBox.setAlignment(Pos.BOTTOM_CENTER);
 		bottomBox.getChildren().add(messageTextField);
@@ -418,9 +431,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	private void setButtons() {
-		//TODO request button
-//		requestButton = new Button("Request status");
-//		requestButton.setOnAction(this);
 		connectButton = new Button("Connect");
 		connectButton.setOnAction(this);
 	}
