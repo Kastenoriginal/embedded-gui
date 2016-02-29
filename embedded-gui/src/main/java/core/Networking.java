@@ -24,7 +24,7 @@ import javafx.scene.control.TextField;
 public class Networking implements Callable<String> {
 
 	public static boolean connected = false;
-	public static ResponseParser responseParser;
+	public static String[] partialStatus;
 
 	private static ArrayList<String> pinsToSend;
 	private static int count = 0;
@@ -88,7 +88,8 @@ public class Networking implements Callable<String> {
 								}
 							} else {
 								count = 0;
-								parseAllPinStatus(allPinStatus);
+								partialStatus = allPinStatus.split(";");
+//								parseAllPinStatus(allPinStatus);
 							}
 							Thread.sleep(1000);
 						} catch (InterruptedException e) {
@@ -107,30 +108,6 @@ public class Networking implements Callable<String> {
 		}
 	}
 
-	public void parseAllPinStatus(final String allPinStatus) {
-		new Thread(new Runnable() {
-			public void run() {
-				if (allPinStatus != null && allPinStatus.startsWith("START;") && allPinStatus.endsWith("END")) {
-					System.out.println("Received " + allPinStatus);
-					String[] partialStatus = allPinStatus.split(";");
-					for (String part : partialStatus) {
-						if (part.length() > 10) {
-							ResponseParser parser = new ResponseParser(part);
-							responseParser = parser;
-							System.out.println("Received status from Raspberry at: " + parser.getDay() + "."
-									+ parser.getMonth() + "." + parser.getYear() + " " + parser.getHour() + ":"
-									+ parser.getMinute() + ":" + parser.getSecond() + " with pin type "
-									+ parser.getPinType() + " as " + parser.getIo() + " and value " + parser.getValue()
-									+ " on pin " + parser.getPinNumber());
-//							Main.connectButton.setText(parser.getPinType());
-						}
-					}
-					//TODO ohandlovat to co prislo - update GUI
-				}
-			}
-		}).start();
-	}
-
 	public String call() {
 		try {
 			String response;
@@ -143,9 +120,7 @@ public class Networking implements Callable<String> {
 						pinsToRequest = pinsToRequest + ";" + pinToSend;
 					}
 				}
-				System.out.println("SENDING " + pinsToRequest);
 				out.println(getDateAndTime() + "REQUEST:990" + pinsToRequest);
-				System.out.println("reading response");
 				response = in.readLine();
 				return response;
 			} else if (!connected && command.equals("Connect")) {
@@ -211,7 +186,6 @@ public class Networking implements Callable<String> {
 							}
 						}
 						String response = in.readLine();
-						//TODO ohandlovat parsnuty string ako response z pinu - update GUI - to iste urobit po prijati pinov zo sekundovych rq
 						System.out.println(response);
 					} catch (UnknownHostException e) {
 						toggleConnectionStatus(serverIP, serverPort, "Disconnect");
@@ -238,18 +212,20 @@ public class Networking implements Callable<String> {
 	}
 
 	public void disconnect() {
-		System.out.println("Trying to disconnect from server.");
-		if (!socket.isClosed()) {
-			try {
-				socket.close();
-				System.out.println("Connection succesfully closed.");
-			} catch (IOException e) {
-				System.out.println("Unable to close socket.");
+		if (socket != null) {
+			System.out.println("Trying to disconnect from server.");
+			if (!socket.isClosed()) {
+				try {
+					socket.close();
+					System.out.println("Connection succesfully closed.");
+				} catch (IOException e) {
+					System.out.println("Unable to close connection.");
+				}
+			} else {
+				System.out.println("Connection is already closed.");
 			}
-		} else {
-			System.out.println("Connection is already closed.");
+			connected = false;
+			statusThread.setName("0");
 		}
-		connected = false;
-		statusThread.setName("0");
 	}
 }

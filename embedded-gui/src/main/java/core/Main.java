@@ -3,6 +3,7 @@ package core;
 import hashmaps.RaspberryHashMap;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,6 +25,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import sun.net.util.IPAddressUtil;
@@ -32,11 +34,14 @@ import javafx.concurrent.*;
 @SuppressWarnings("restriction")
 public class Main extends Application implements EventHandler<ActionEvent> {
 
-	public static Button connectButton;
-	
+	private static Button connectButton;
+	private static ArrayList<Button> buttons;
+	private static ArrayList<CheckBox> checkBoxes;
+	private static ArrayList<String> checkedCheckBoxes;
+
 	private static final int PORT = 18924;
 	private static final Pattern BODY_PATTERN = Pattern.compile("([0-9a-fA-F][0-9a-fA-F])*");
-	
+
 	private GridPane gridPane;
 	private TextField messageTextField;
 
@@ -50,11 +55,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	public void start(Stage primaryStage) throws Exception {
 		BorderPane borderPane = new BorderPane();
 		TextField textField = new TextField();
-		
+		textField.setMaxWidth(200);
+		checkedCheckBoxes = new ArrayList<String>();
+
 		messageTextField = new TextField();
 		messageTextField.setPromptText("I2C message");
-		messageTextField.setPrefWidth(600);
+		messageTextField.setMaxWidth(150);
 		messageTextField.setAlignment(Pos.CENTER);
+		setI2CMessageValidationBorder("", messageTextField);
+		messageTextField.textProperty().addListener(new ChangeListener<String>() {
+			public void changed(ObservableValue<? extends String> observableValue, String oldValue, String newValue) {
+				setI2CMessageValidationBorder(newValue, messageTextField);
+			}
+		});
 
 		setIpAddressTextField(textField);
 		setButtons();
@@ -92,7 +105,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 	}
 
 	public void handle(ActionEvent event) {
-		//TODO Ohandlovat GUI po vrateni statusu zo servera
 		if (event.getSource() == connectButton && isIpAddress(ip)) {
 			connectButton.setDisable(true);
 			networking.toggleConnectionStatus(ip, PORT, connectButton.getText());
@@ -104,10 +116,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 						while (Networking.connected) {
 							Platform.runLater(new Runnable() {
 								public void run() {
-									ResponseParser parser = Networking.responseParser;
-									if (parser != null) {
-										//TODO tu dat vsetky partial status spravit parser a ohandlovat GUI
-									}
+									setUiFromResponse();
 								}
 							});
 							Thread.sleep(1000);
@@ -118,14 +127,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				Thread thread = new Thread(task);
 				thread.start();
 				gridPane.setVisible(true);
-			} else if (!Networking.connected) {
+			} else {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
 				gridPane.setVisible(false);
+				Iterator<String> iterator = checkedCheckBoxes.iterator();
+				while (iterator.hasNext()) {
+					String value = iterator.next();
+					CheckBox cb = checkBoxes.get(Integer.valueOf(value) - 1);
+					iterator.remove();
+					cb.setSelected(false);
+				}
 			}
-
-			//TODO aj ked je OUT aj ked IN GPIO tak ukazat momentalny stav pinu 1/0
-			//TEST I2C message
+			//TODO I2C message visibility
 		}
 	}
 
@@ -134,37 +148,35 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		topBox.setAlignment(Pos.CENTER);
 		topBox.getChildren().add(textField);
 		topBox.getChildren().add(connectButton);
-//		topBox.setStyle("-fx-background-color: blue;");
-		borderPane.setTop(topBox);
-
-		VBox leftBox = new VBox();
-		leftBox.setAlignment(Pos.TOP_LEFT);
-		borderPane.setLeft(leftBox);
+		BorderPane topPane = new BorderPane();
+		StackPane left = new StackPane();
+		StackPane right = new StackPane();
+		left.setPrefWidth(200);
+		right.setPrefWidth(200);
+		right.getChildren().add(connectButton);
+		right.setAlignment(Pos.TOP_RIGHT);
+		topPane.setLeft(left);
+		topPane.setRight(right);
+		topPane.setCenter(textField);
+		borderPane.setTop(topPane);
 
 		gridPane = new GridPane();
 		gridPane.setAlignment(Pos.CENTER);
 
-//		setGridElements();
-
 		VBox centerBox = new VBox();
 		centerBox.setAlignment(Pos.TOP_CENTER);
+		centerBox.getChildren().add(messageTextField);
 		centerBox.getChildren().add(gridPane);
 //		centerBox.setStyle("-fx-background-color: green;");
 		borderPane.setCenter(centerBox);
-
-		HBox bottomBox = new HBox();
-		bottomBox.setAlignment(Pos.BOTTOM_CENTER);
-		bottomBox.getChildren().add(messageTextField);
-//		bottomBox.setStyle("-fx-background-color: magenta;");
-		borderPane.setBottom(bottomBox);
 	}
 
 	private void setGridElements() {
-		ArrayList<Button> buttons = new ArrayList<Button>();
-		ArrayList<ComboBox<String>> pinTypeComboBoxes = new ArrayList<ComboBox<String>>();
+		checkBoxes = new ArrayList<CheckBox>();
 		ArrayList<TextField> textFields = new ArrayList<TextField>();
 		ArrayList<ComboBox<String>> inputOutputComboBoxes = new ArrayList<ComboBox<String>>();
-		ArrayList<CheckBox> checkBoxes = new ArrayList<CheckBox>();
+		ArrayList<ComboBox<String>> pinTypeComboBoxes = new ArrayList<ComboBox<String>>();
+		buttons = new ArrayList<Button>();
 
 		createGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields, checkBoxes);
 		disableGridElements(buttons, pinTypeComboBoxes, inputOutputComboBoxes, textFields, checkBoxes);
@@ -223,9 +235,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 						toggleElementsEnabled(newValue, checkBox, textFields, inputOutputComboBoxes, pinTypeComboBoxes,
 								buttons, checkBoxes);
 						if (newValue) {
+							checkedCheckBoxes.add(checkBox.getId());
 							networking.addPinToSend(checkBox.getId());
 						} else if (!newValue) {
 							networking.removePinToSend(checkBox.getId());
+							checkedCheckBoxes.remove(checkBox.getId());
 						}
 					}
 				});
@@ -256,13 +270,13 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				textField.setPrefWidth(80);
 				textField.setVisible(false);
 				textField.setPromptText("Address");
-				setAddressValidationBorder("", textField);
+				setI2CAddressValidationBorder("", textField);
 				textFields.add(textField);
 				textFieldId++;
 				textField.textProperty().addListener(new ChangeListener<String>() {
 					@SuppressWarnings("rawtypes")
 					public void changed(ObservableValue observableValue, String oldValue, String newValue) {
-						setAddressValidationBorder(newValue, textField);
+						setI2CAddressValidationBorder(newValue, textField);
 					}
 				});
 				if (Integer.valueOf(textField.getId()) != 5) {
@@ -303,9 +317,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 								.isVisible();
 						boolean isPinComboBoxI2C = pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1)
 								.getSelectionModel().getSelectedItem().equals("I2C");
-						boolean isI2CAddressValid = isValidInput(textFields.get(Integer.valueOf(button.getId()) - 1)
-								.getText());
-						boolean isMessageValid = isValidInput(messageTextField.getText());
+						boolean isI2CAddressValid = isI2CAddressValid(textFields.get(
+								Integer.valueOf(button.getId()) - 1).getText());
+						boolean isMessageValid = isI2CMessageValid(messageTextField.getText());
 						if (isIpAddress(ip)
 								&& ((isIOComboBoxOut && isIOComboBoxVisible) || (isPinComboBoxI2C && isI2CAddressValid && isMessageValid))) {
 							toggleButton(button, pinTypeComboBoxes.get(Integer.valueOf(button.getId()) - 1),
@@ -319,18 +333,44 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	private boolean isValidInput(String input) {
+	private void setUiFromResponse() {
+		String[] partialStatus = Networking.partialStatus;
+		if (partialStatus != null) {
+			for (String part : partialStatus) {
+				if (part.length() > 10) {
+					ResponseParser parser = new ResponseParser(part);
+					String pinNumber = parser.getPinNumber();
+					String pinValue = parser.getValue();
+					if (pinNumber.startsWith("0")) {
+						pinNumber = pinNumber.substring(1);
+					}
+					Button buttonToChange = buttons.get(Integer.valueOf(pinNumber) - 1);
+					if (pinValue.equals("1")) {
+						buttonToChange.setStyle("-fx-background-color: #99ff99;-fx-text-fill: black;");
+					} else if (pinValue.equals("0")) {
+						buttonToChange.setStyle("-fx-background-color: #ff9999;-fx-text-fill: black;");
+					} else {
+						buttonToChange.setStyle("-fx-background-color: white;-fx-text-fill: #03A9F4;");
+					}
+				}
+			}
+		}
+	}
+
+	private boolean isI2CMessageValid(String input) {
 		Matcher i2CMatcher = BODY_PATTERN.matcher(input);
-		if (i2CMatcher.matches()) {
+		if (i2CMatcher.matches() && !input.equals("")) {
 			return true;
 		} else {
 			return false;
 		}
-		
-//		if (!(input.length() == 4) || input.isEmpty() || !input.startsWith("0")) {
-//			return false;
-//		} else
-//			return true;
+	}
+
+	private boolean isI2CAddressValid(String input) {
+		if (!(input.length() == 4) || input.isEmpty() || !input.startsWith("0x")) {
+			return false;
+		} else
+			return true;
 	}
 
 	private void toggleElementsEnabled(boolean newValue, CheckBox checkBox, ArrayList<TextField> textFields,
@@ -453,8 +493,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	private void setAddressValidationBorder(String input, TextField textField) {
-		if (isValidInput(input)) {
+	private void setI2CAddressValidationBorder(String input, TextField textField) {
+		if (isI2CAddressValid(input)) {
+			textField.setStyle("-fx-border-color: green; -fx-border-width: 2px;");
+		} else {
+			textField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+		}
+	}
+
+	private void setI2CMessageValidationBorder(String input, TextField textField) {
+		if (isI2CMessageValid(input)) {
 			textField.setStyle("-fx-border-color: green; -fx-border-width: 2px;");
 		} else {
 			textField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
